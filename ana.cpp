@@ -59,6 +59,7 @@ struct parseState_t
     ea_t ptr;
     uint32 code;
     uchar sz;
+    uchar masked;
 
     void reset()
     {
@@ -97,6 +98,16 @@ struct parseState_t
         return byte;
     }
 
+    bool compareMask(parseinfo_t *pi)
+    {
+        if ((code & pi->mask) == pi->code)
+        {
+            masked = code & (~pi->mask);
+            return true;
+        }
+        return false;
+    }
+
 } parseState;
 
 
@@ -110,25 +121,25 @@ static void parseOperand(op_t &op, opgen_t type)
     case OPG_NONE:
         break;
     case OPG_D_SRC:
-        v = (parseState.code & 0xC) >> 2;
+        v = (parseState.masked & 0xC) >> 2;
         op.type = o_reg;
         op.reg = OP_REG_D + v;
         op.addr = op.value = 0;
         break;
     case OPG_D_DST:
-        v = parseState.code & 0x3;
+        v = parseState.masked & 0x3;
         op.type = o_reg;
         op.reg = OP_REG_D + v;
         op.addr = op.value = 0;
         break;
     case OPG_DW_SRC:
-        v = (parseState.code & 0x2) >> 1;
+        v = (parseState.masked & 0x2) >> 1;
         op.type = o_reg;
         op.reg = OP_REG_DW + v;
         op.addr = op.value = 0;
         break;
     case OPG_DW_DST:
-        v = parseState.code & 0x1;
+        v = parseState.masked & 0x1;
         op.type = o_reg;
         op.reg = OP_REG_DW + v;
         op.addr = op.value = 0;
@@ -175,7 +186,7 @@ static uint16 parseInstruction(parseinfo_t *pTable, size_t tblSize)
     for (size_t i = 0; i < tblSize; i++)
     {
         ins = &pTable[i];
-        if ((parseState.code & ins->mask) == ins->code)
+        if (parseState.compareMask(ins))
         {
             cmd.itype = ins->mnemonic;
             parseOperand(cmd.Operands[0], ins->op[0]);
