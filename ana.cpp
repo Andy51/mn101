@@ -6,6 +6,223 @@
 
 #include "pan.hpp"
 
+typedef enum {
+    OPG_NONE = 0,
+    OPG_D_SRC,
+    OPG_D_DST,
+    OPG_DW_SRC,
+    OPG_DW_DST,
+    OPG_IMM_4,
+    OPG_IMM4_SIGNED,
+    OPG_BRANCH_7,
+    OPG_BRANCH_11,
+    OPG_REG_SP
+
+} opgen_t;
+
+#define FLAG_SRCOFF_SP 0x01
+#define FLAG_DSTOFF_SP 0x02
+
+typedef struct
+{
+    uchar code;
+    uchar mask;
+    nameNum mnemonic;
+    opgen_t op[2];
+    uchar flags;
+
+} parseinfo_t;
+
+
+static parseinfo_t parseTable[] = {
+    { 0xFD, 0xFF, ADDW, OPG_IMM4_SIGNED, OPG_REG_SP}, //ADDW imm4,SP
+    { 0xF6, 0xFE, MOVW, OPG_DW_DST, OPG_IMM_4, FLAG_DSTOFF_SP }, //MOVW, DWn,(d4,SP), 1111, 011D, <d4>
+    { 0xE6, 0xFE, MOVW, OPG_IMM_4, OPG_DW_DST, FLAG_SRCOFF_SP }, //MOVW, (d4,SP),DWm, 1110, 011d, <d4>
+    { 0x8B, 0xFF, BNE, OPG_BRANCH_7 }, //BNE, label, 1000, 1011, <d7., ...H
+    { 0x64, 0xFC, MOV, OPG_IMM_4, OPG_REG_SP, OPG_D_DST }, //MOV, (d4,SP),Dm, , 0110, 01Dm, <d4>
+    { 0x01, 0xFF, RTS }, //RTS, 0000, 0001
+};
+
+static parseinfo_t parseTableExtension2[] = {
+    { 0x84, 0xFC, CMPW, OPG_DW_SRC, OPG_DW_DST }, //CMPW, DWn,DWm, 0010, 1000, 01Dd
+    { 0x34, 0xFF, BNC, OPG_BRANCH_11 }, //BNC, label, 0010, 0011, 0100, <d11, ...., ...H
+};
+
+static parseinfo_t parseTableExtension3[] = {
+    { 0xA0, 0xF0, XOR, OPG_D_SRC, OPG_D_DST}, //XOR, Dn,Dm, , 0011, 1010, DnDm
+};
+
+
+struct parseState_t
+{
+    ea_t pc;
+    ea_t ptr;
+    uint32 code;
+    uchar sz;
+
+    void reset()
+    {
+        code = 0;
+        sz = 0;
+        uchar H = helper.charval(cmd.ea, NODETAG_HALFBYTE);
+        ptr = pc = (cmd.ea << 1) + H;
+    }
+
+    uint32 fetchNibble()
+    {
+        uchar nibble;
+        if (ptr & 1)
+            nibble = get_byte(ptr >> 1) >> 4;
+        else
+            nibble = get_byte(ptr >> 1) & 0xF;
+
+        QASSERT(256, nibble <= 0xF);
+        code = (code << 4) | nibble;
+        sz++;
+        ptr++;
+        return nibble;
+    }
+
+    uint32 fetchByte()
+    {
+        uchar byte;
+        if (ptr & 1)
+            byte = (get_byte(ptr >> 1) >> 4) | (get_byte((ptr >> 1)+1) & 0xF);
+        else
+            byte = get_byte(ptr >> 1);
+
+        code = (code << 8) | byte;
+        sz += 2;
+        ptr += 2;
+        return byte;
+    }
+
+} parseState;
+
+
+static void parseOperand(op_t &op, opgen_t type)
+{
+    uchar v;
+    signed int imm;
+    signed char imm8;
+    switch (type)
+    {
+    case OPG_NONE:
+        break;
+    case OPG_D_SRC:
+        v = (parseState.code & 0xC) >> 2;
+        op.type = o_reg;
+        op.reg = OP_REG_D + v;
+        op.addr = op.value = 0;
+        break;
+    case OPG_D_DST:
+        v = parseState.code & 0x3;
+        op.type = o_reg;
+        op.reg = OP_REG_D + v;
+        op.addr = op.value = 0;
+        break;
+    case OPG_DW_SRC:
+        v = (parseState.code & 0x2) >> 1;
+        op.type = o_reg;
+        op.reg = OP_REG_DW + v;
+        op.addr = op.value = 0;
+        break;
+    case OPG_DW_DST:
+        v = parseState.code & 0x1;
+        op.type = o_reg;
+        op.reg = OP_REG_DW + v;
+        op.addr = op.value = 0;
+        break;
+    case OPG_IMM_4:
+        v = parseState.fetchNibble();
+        op.addr = op.value = v;
+        op.type = o_imm;
+        op.dtyp = dt_byte;
+        op.flags |= OF_NUMBER;
+        break;
+    case OPG_IMM4_SIGNED:
+        imm = parseState.fetchNibble();
+        imm = (imm << 28) >> 28; // Sign-extend imm#4 to imm#32
+        op.addr = op.value = imm;
+        op.type = o_imm;
+        op.dtyp = dt_byte;
+        op.flags |= OF_NUMBER;
+        break;
+    case OPG_BRANCH_7:
+        imm8 = parseState.fetchByte(); //Signed imm#8
+        op.addr = op.value = parseState.pc + imm8 + parseState.sz;
+        op.type = o_near;
+        break;
+    case OPG_BRANCH_11:
+        imm = parseState.fetchByte() | (parseState.fetchNibble() << 8); //Signed imm#12
+        imm = (imm << 20) >> 20; // Sign-extend imm#12 to imm#32
+        op.addr = op.value = parseState.pc + imm + parseState.sz;
+        op.type = o_near;
+        break;
+    case OPG_REG_SP:
+        op.type = o_reg;
+        op.reg = OP_REG_SP;
+        op.addr = op.value = 0;
+        break;
+    default:
+        QASSERT(257, 0);
+    }
+}
+
+static uint16 parseInstruction(parseinfo_t *pTable, size_t tblSize)
+{
+    parseinfo_t *ins;
+    for (size_t i = 0; i < tblSize; i++)
+    {
+        ins = &pTable[i];
+        if ((parseState.code & ins->mask) == ins->code)
+        {
+            cmd.itype = ins->mnemonic;
+            parseOperand(cmd.Operands[0], ins->op[0]);
+            parseOperand(cmd.Operands[1], ins->op[1]);
+            return 1;
+        }
+    }
+
+    return 1;
+}
+
+
+int idaapi mn101_ana(void)
+{
+    parseState.reset();
+
+    // Get the first byte of instruction
+    uchar extension = parseState.fetchNibble();
+
+    // Handle extension codes
+    switch (extension)
+    {
+    case 0x3:
+        parseState.fetchByte();
+        parseInstruction(parseTableExtension3, qnumber(parseTableExtension3));
+        break;
+    case 0x2:
+        parseState.fetchByte();
+        parseInstruction(parseTableExtension2, qnumber(parseTableExtension2));
+        break;
+    default:
+        parseState.fetchNibble();
+        parseInstruction(parseTable, qnumber(parseTable));
+        break;
+    }
+
+    // Update the command size
+    cmd.size = (parseState.sz + (parseState.pc & 1)) / 2;
+    // Mark the last byte if it was partly consumed
+    if (parseState.ptr & 1)
+    {
+        helper.charset(parseState.ptr >> 1, 1, NODETAG_HALFBYTE);
+    }
+
+    return(cmd.size);
+}
+
 // только для внутреннего использования
 static uint32 LoadData(int bytes)
 {
@@ -116,6 +333,7 @@ static void SetMem(op_t &op, int AddrSize, uchar DataSize)
 
 //----------------------------------------------------------------------
 // анализатор
+#if 0
 int idaapi mn102_ana(void)
 {
         uchar R1, R2;
@@ -880,3 +1098,4 @@ int idaapi mn102_ana(void)
         }
 return(cmd.size);
 }
+#endif

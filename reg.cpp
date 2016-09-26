@@ -22,8 +22,19 @@ static const char *const RegNames[] =
         "cs","ds"
 };
 
+static const char *const mn101_registerNames[] =
+{
+    "",
+    "D0","D1","D2","D3",
+    "A0","A1",
+    "DW0","DW1",
+    "SP",
+};
+
+netnode helper;
+
 #if IDP_INTERFACE_VERSION > 37
-static netnode helper;
+
 char device[MAXSTR] = "";
 static size_t numports = 0;
 static ioport_t *ports = NULL;
@@ -204,9 +215,9 @@ static const asm_t pseudosam = {
 // Список ассемблеров
 static const asm_t *const asms[] = { &pseudosam, NULL };
 //-----------------------------------------------------------------------
-#define FAMILY "Panasonic MN10200:"
-static const char *const shnames[] = { "MN102L00", NULL };
-static const char *const lnames[] = { FAMILY"Panasonic MN102L00", NULL };
+#define FAMILY "Panasonic MN101:"
+static const char *const shnames[] = { "MN101E", NULL };
+static const char *const lnames[] = { FAMILY"Panasonic MN101E", NULL };
 
 //--------------------------------------------------------------------------
 // коды возвратов из п/п
@@ -249,14 +260,14 @@ processor_t LPH = {
   mn101_ana,                     // канализатор
   mn102_emu,                     // эмулятор инструкций
 
-  mn102_out,                     // текстогенератор
-  mn102_outop,                   // тектогенератор операндов
+  mn101_out,                     // текстогенератор
+  mn101_outop,                   // тектогенератор операндов
   mn102_data,                    // генератор описания данных
   NULL,                         // сравнивалка операндов
   NULL,                         // can have type
 
-  qnumber(RegNames),            // Number of registers
-  RegNames,                     // Regsiter names
+  qnumber(mn101_registerNames),            // Number of registers
+  mn101_registerNames,                     // Regsiter names
   NULL,                         // получить значение регистра
 
   0,                            // число регистровых файлов

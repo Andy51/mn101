@@ -32,10 +32,33 @@ enum mn102_registers ENUM8BIT { rNULLReg,
         rMDR,rPSW, rPC,
         rVcs, rVds};
 
+enum mn101_registers {
+    OP_REG_NONE = 0,
+
+    OP_REG_D,
+    OP_REG_D0 = OP_REG_D,
+    OP_REG_D1,
+    OP_REG_D2,
+    OP_REG_D3,
+
+    OP_REG_A,
+    OP_REG_A0 = OP_REG_A,
+    OP_REG_A1,
+
+    OP_REG_DW,
+    OP_REG_DW0 = OP_REG_DW,
+    OP_REG_DW1,
+
+    OP_REG_SP,
+};
+
 #if IDP_INTERFACE_VERSION > 37
 extern char deviceparams[];
 extern char device[];
 #endif
+
+extern netnode helper;
+#define NODETAG_HALFBYTE 'h'
 
 //------------------------------------------------------------------------
 void    idaapi mn102_header(void);
@@ -43,10 +66,10 @@ void    idaapi mn102_footer(void);
 
 void    idaapi mn102_segstart(ea_t ea);
 
-int     idaapi mn102_ana(void);
+int     idaapi mn101_ana(void);
 int     idaapi mn102_emu(void);
-void    idaapi mn102_out(void);
-bool    idaapi mn102_outop(op_t &op);
+void    idaapi mn101_out(void);
+bool    idaapi mn101_outop(op_t &op);
 
 void    idaapi mn102_data(ea_t ea);
 

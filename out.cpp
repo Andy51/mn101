@@ -9,21 +9,23 @@
 //----------------------------------------------------------------------
 static void OutVarName(op_t &x)
 {
-  ea_t addr = x.addr;
+  ea_t addr = x.addr >> 1;
+  bool H = x.addr & 1;
   ea_t toea = toEA(codeSeg(addr,x.n), addr);
   if ( out_name_expr(x, toea, addr) )
     return;
   OutValue(x, OOF_ADDR | OOF_NUMBER | OOFS_NOSIGN | OOFW_32);
+  if(H) out_symbol('_');
   // пометим проблему - нет имени
   QueueSet(Q_noName, cmd.ea);
 }
 
 //----------------------------------------------------------------------
 // вывод одного операнда
-bool idaapi mn102_outop(op_t &x)
+bool idaapi mn101_outop(op_t &x)
 {
-  switch ( x.type )
-  {
+    switch ( x.type )
+    {
     // ссылка на память с использованием регистра (регистров)
     // (disp,Ri)
     case o_displ: // открывающая скобка есть всегда
@@ -37,27 +39,11 @@ bool idaapi mn102_outop(op_t &x)
 
     // регистр
     case o_reg:
-      if ( x.reg&0x80 )
-        out_symbol('(');
-      if ( x.reg&0x10 )
-      {
-        out_register(ph.regNames[((x.reg>>5)&3)+rD0]);
-        out_symbol(',');
-      }
-      out_register(ph.regNames[x.reg&0x0F]);
-      if ( x.reg&0x80 )
-        out_symbol(')');
-      break;
+        out_register(ph.regNames[x.reg]);
+        break;
 
     // непосредственные данные
     case o_imm:
-      refinfo_t ri;
-      // micro bug-fix
-      if ( get_refinfo(cmd.ea, x.n, &ri) )
-      {
-        if ( ri.flags == REF_OFF16 )
-          set_refinfo(cmd.ea, x.n, REF_OFF32, ri.target, ri.base, ri.tdelta);
-      }
       OutValue(x, /*OOFS_NOSIGN | */ OOF_SIGNED | OOFW_IMM);
       break;
 
@@ -86,42 +72,42 @@ bool idaapi mn102_outop(op_t &x)
 }
 
 //----------------------------------------------------------------------
-// основная выводилка команд
-void idaapi mn102_out(void)
+void idaapi mn101_out(void)
 {
-  char buf[MAXSTR];
-  init_output_buffer(buf, sizeof(buf)); // setup the output pointer
-  // выведем мнемонику
-  OutMnem();
+    char buf[MAXSTR];
+    init_output_buffer(buf, sizeof(buf)); // setup the output pointer
 
-  // выведем первый операнд
-  if ( cmd.Op1.type!=o_void )
-    out_one_operand(0);
+    OutMnem();
 
-  // выведем второй операнд
-  if ( cmd.Op2.type != o_void )
-  {
-    out_symbol(',');
-    OutChar(' ');
-    out_one_operand(1);
-    // выведем третий операнд
-    if ( cmd.Op3.type != o_void )
+    //First operand
+    if (cmd.Op1.type != o_void)
+        out_one_operand(0);
+
+    //Second operand
+    if (cmd.Op2.type != o_void)
     {
-      out_symbol(',');
-      OutChar(' ');
-      out_one_operand(2);
+        out_symbol(',');
+        OutChar(' ');
+        out_one_operand(1);
     }
-  }
 
-  // выведем непосредственные данные, если они есть
-  if ( isVoid(cmd.ea,uFlag,0) ) OutImmChar(cmd.Op1);
-  if ( isVoid(cmd.ea,uFlag,1) ) OutImmChar(cmd.Op2);
-  if ( isVoid(cmd.ea,uFlag,2) ) OutImmChar(cmd.Op3);
+    // Third operand
+    if (cmd.Op3.type != o_void)
+    {
+        out_symbol(',');
+        OutChar(' ');
+        out_one_operand(2);
+    }
 
-  // завершим строку
-  term_output_buffer();
-  gl_comm = 1;
-  MakeLine(buf);
+    // выведем непосредственные данные, если они есть
+    if ( isVoid(cmd.ea,uFlag,0) ) OutImmChar(cmd.Op1);
+    if ( isVoid(cmd.ea,uFlag,1) ) OutImmChar(cmd.Op2);
+    if ( isVoid(cmd.ea,uFlag,2) ) OutImmChar(cmd.Op3);
+
+    // завершим строку
+    term_output_buffer();
+    gl_comm = 1;
+    MakeLine(buf);
 }
 
 //--------------------------------------------------------------------------
