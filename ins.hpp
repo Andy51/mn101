@@ -15,6 +15,7 @@ enum nameNum ENUM_SIZE(uint16)
 mn102_null = 0,           // Unknown Operation
 ADDW,
 MOVW,
+BRA,
 BNE,
 BNC,
 MOV,

@@ -14,6 +14,7 @@ typedef enum {
     OPG_DW_DST,
     OPG_IMM_4,
     OPG_IMM4_SIGNED,
+    OPG_BRANCH_4,
     OPG_BRANCH_7,
     OPG_BRANCH_11,
     OPG_REG_SP,
@@ -41,6 +42,7 @@ static parseinfo_t parseTable[] = {
     { 0xF6, 0xFE, MOVW, OPG_DW_DST, OPG_IMM_4, OPG_REG_SP | OPG_RELATIVE }, //MOVW, DWn,(d4,SP), 1111, 011D, <d4>
     { 0xE6, 0xFE, MOVW, OPG_IMM_4, OPG_REG_SP | OPG_RELATIVE, OPG_DW_DST }, //MOVW, (d4,SP),DWm, 1110, 011d, <d4>
     { 0x8B, 0xFF, BNE, OPG_BRANCH_7 }, //BNE, label, 1000, 1011, <d7., ...H
+    { 0xEE, 0xFE, BRA, OPG_BRANCH_4 }, //BRA label 1110 111H <d4>
     { 0x64, 0xFC, MOV, OPG_IMM_4, OPG_REG_SP | OPG_RELATIVE, OPG_D_DST }, //MOV, (d4,SP),Dm, , 0110, 01Dm, <d4>
     { 0x01, 0xFF, RTS }, //RTS, 0000, 0001
 };
@@ -48,6 +50,7 @@ static parseinfo_t parseTable[] = {
 static parseinfo_t parseTableExtension2[] = {
     { 0x84, 0xFC, CMPW, OPG_DW_SRC, OPG_DW_DST }, //CMPW, DWn,DWm, 0010, 1000, 01Dd
     { 0x34, 0xFF, BNC, OPG_BRANCH_11 }, //BNC, label, 0010, 0011, 0100, <d11, ...., ...H
+    { 0x24, 0xFF, BNC, OPG_BRANCH_7 }, //BNC, label, 0010 0010 0100 <d7. ...H
 };
 
 static parseinfo_t parseTableExtension3[] = {
@@ -157,6 +160,13 @@ static bool parseOperand(op_t &op, int type)
         op.type = o_imm;
         op.dtyp = dt_byte;
         op.flags |= OF_NUMBER;
+        break;
+    case OPG_BRANCH_4:
+        imm = parseState.fetchNibble();
+        imm = (imm << 28) >> 28; // Sign-extend imm#4 to imm#32
+        imm = (imm << 1) | (parseState.masked & 1); // Extract H
+        op.addr = op.value = parseState.pc + imm + parseState.sz;
+        op.type = o_near;
         break;
     case OPG_BRANCH_7:
         imm8 = parseState.fetchByte(); //Signed imm#8
