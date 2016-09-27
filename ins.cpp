@@ -10,7 +10,7 @@ instruc_t Instructions[] = {
 {"",            0                               },
 {"ADDW",        CF_USE1 | CF_USE2 | CF_CHG2     },
 {"MOVW",        CF_USE1 | CF_USE2 | CF_CHG2     },
-{"BRA",         CF_USE1 | CF_JUMP               },
+{"BRA",         CF_USE1 | CF_JUMP | CF_STOP     },
 {"BNE",         CF_USE1 | CF_JUMP               },
 {"BNC",         CF_USE1 | CF_JUMP               },
 {"MOV",         CF_USE1 | CF_USE2 | CF_CHG2     },
