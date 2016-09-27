@@ -50,22 +50,24 @@ static void near TouchArg(op_t &x,int isAlt,int isload)
                 break;
 
   // переход или вызов
-  case o_near:  // это вызов ? (или переход)
-                                if ( InstrIsSet(cmd.itype,CF_CALL) ){
-                                        // поставим ссылку на код
-                                        ua_add_cref(x.offb,ea,fl_CN);
-                                        // это функция без возврата ?
-#if IDP_INTERFACE_VERSION > 37
-                                        flow = func_does_return(ea);
-#else
-                    // получим описатель функции
-                                        func_t *pfn = get_func(ea);
-                                        // если функция описана и не имеет возврата - остановим
-                                        if ( pfn != NULL && (pfn->flags & FUNC_NORET)  ) flow = false;
-#endif
-                                }
-                                else ua_add_cref(x.offb,ea,fl_JN);
-                break;
+    case o_near:  // это вызов ? (или переход)
+        if (InstrIsSet(cmd.itype, CF_CALL)) {
+            ua_add_cref(x.offb, ea, fl_CN);
+
+            // это функция без возврата ?
+            flow = func_does_return(ea);
+        }
+        else
+        {
+            ua_add_cref(x.offb, ea, fl_JN);
+        }
+
+        // Mark the jump address if it has halfbyte offset
+        if (x.addr & 1)
+        {
+            helper.charset(ea, 1, NODETAG_HALFBYTE);
+        }
+        break;
 
   // ссылка на память
   case o_mem:   // сделаем данные по указанному адресу
