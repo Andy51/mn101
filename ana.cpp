@@ -190,7 +190,7 @@ static bool parseOperand(op_t &op, int type)
     return true;
 }
 
-static uint16 parseInstruction(parseinfo_t *pTable, size_t tblSize)
+static bool parseInstruction(parseinfo_t *pTable, size_t tblSize)
 {
     parseinfo_t *ins;
     for (size_t i = 0; i < tblSize; i++)
@@ -208,16 +208,17 @@ static uint16 parseInstruction(parseinfo_t *pTable, size_t tblSize)
                 if ((ins->op[j] & OPG_RELATIVE) != 0)
                     cmd.Operands[opidx].type = o_displ;
             }
-            return 1;
+            return true;
         }
     }
 
-    return 1;
+    return false;
 }
 
 
 int idaapi mn101_ana(void)
 {
+    bool decoded;
     parseState.reset();
 
     // Get the first byte of instruction
@@ -229,19 +230,22 @@ int idaapi mn101_ana(void)
     case 0x3:
         parseState.fetchNibble();
         parseState.fetchNibble();
-        parseInstruction(parseTableExtension3, qnumber(parseTableExtension3));
+        decoded = parseInstruction(parseTableExtension3, qnumber(parseTableExtension3));
         break;
     case 0x2:
 
         parseState.fetchNibble();
         parseState.fetchNibble();
-        parseInstruction(parseTableExtension2, qnumber(parseTableExtension2));
+        decoded = parseInstruction(parseTableExtension2, qnumber(parseTableExtension2));
         break;
     default:
         parseState.fetchNibble();
-        parseInstruction(parseTable, qnumber(parseTable));
+        decoded = parseInstruction(parseTable, qnumber(parseTable));
         break;
     }
+
+    if (!decoded)
+        return 0;
 
     // Update the command size
     cmd.size = (parseState.sz + (parseState.pc & 1)) / 2;
