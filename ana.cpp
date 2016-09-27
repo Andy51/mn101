@@ -84,11 +84,12 @@ struct parseState_t
         return nibble;
     }
 
+    // This is unaligned byte fetch. Note it is not the same as 2x fetchNibble()
     uint32 fetchByte()
     {
         uchar byte;
         if (ptr & 1)
-            byte = (get_byte(ptr >> 1) >> 4) | (get_byte((ptr >> 1)+1) & 0xF);
+            byte = (get_byte(ptr >> 1) >> 4) | (get_byte((ptr >> 1)+1) << 4);
         else
             byte = get_byte(ptr >> 1);
 
@@ -210,11 +211,13 @@ int idaapi mn101_ana(void)
     switch (extension)
     {
     case 0x3:
-        parseState.fetchByte();
+        parseState.fetchNibble();
+        parseState.fetchNibble();
         parseInstruction(parseTableExtension3, qnumber(parseTableExtension3));
         break;
     case 0x2:
-        parseState.fetchByte();
+        parseState.fetchNibble();
+        parseState.fetchNibble();
         parseInstruction(parseTableExtension2, qnumber(parseTableExtension2));
         break;
     default:
