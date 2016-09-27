@@ -16,7 +16,9 @@ typedef enum {
     OPG_IMM4_SIGNED,
     OPG_BRANCH_7,
     OPG_BRANCH_11,
-    OPG_REG_SP
+    OPG_REG_SP,
+
+    OPG_RELATIVE = 0x100
 
 } opgen_t;
 
@@ -28,7 +30,7 @@ typedef struct
     uchar code;
     uchar mask;
     nameNum mnemonic;
-    opgen_t op[2];
+    uint32 op[3];
     uchar flags;
 
 } parseinfo_t;
@@ -36,10 +38,10 @@ typedef struct
 
 static parseinfo_t parseTable[] = {
     { 0xFD, 0xFF, ADDW, OPG_IMM4_SIGNED, OPG_REG_SP}, //ADDW imm4,SP
-    { 0xF6, 0xFE, MOVW, OPG_DW_DST, OPG_IMM_4, FLAG_DSTOFF_SP }, //MOVW, DWn,(d4,SP), 1111, 011D, <d4>
-    { 0xE6, 0xFE, MOVW, OPG_IMM_4, OPG_DW_DST, FLAG_SRCOFF_SP }, //MOVW, (d4,SP),DWm, 1110, 011d, <d4>
+    { 0xF6, 0xFE, MOVW, OPG_DW_DST, OPG_IMM_4, OPG_REG_SP | OPG_RELATIVE }, //MOVW, DWn,(d4,SP), 1111, 011D, <d4>
+    { 0xE6, 0xFE, MOVW, OPG_IMM_4, OPG_REG_SP | OPG_RELATIVE, OPG_DW_DST }, //MOVW, (d4,SP),DWm, 1110, 011d, <d4>
     { 0x8B, 0xFF, BNE, OPG_BRANCH_7 }, //BNE, label, 1000, 1011, <d7., ...H
-    { 0x64, 0xFC, MOV, OPG_IMM_4, OPG_REG_SP, OPG_D_DST }, //MOV, (d4,SP),Dm, , 0110, 01Dm, <d4>
+    { 0x64, 0xFC, MOV, OPG_IMM_4, OPG_REG_SP | OPG_RELATIVE, OPG_D_DST }, //MOV, (d4,SP),Dm, , 0110, 01Dm, <d4>
     { 0x01, 0xFF, RTS }, //RTS, 0000, 0001
 };
 
@@ -112,7 +114,7 @@ struct parseState_t
 } parseState;
 
 
-static void parseOperand(op_t &op, opgen_t type)
+static bool parseOperand(op_t &op, int type)
 {
     uchar v;
     signed int imm;
@@ -125,25 +127,21 @@ static void parseOperand(op_t &op, opgen_t type)
         v = (parseState.masked & 0xC) >> 2;
         op.type = o_reg;
         op.reg = OP_REG_D + v;
-        op.addr = op.value = 0;
         break;
     case OPG_D_DST:
         v = parseState.masked & 0x3;
         op.type = o_reg;
         op.reg = OP_REG_D + v;
-        op.addr = op.value = 0;
         break;
     case OPG_DW_SRC:
         v = (parseState.masked & 0x2) >> 1;
         op.type = o_reg;
         op.reg = OP_REG_DW + v;
-        op.addr = op.value = 0;
         break;
     case OPG_DW_DST:
         v = parseState.masked & 0x1;
         op.type = o_reg;
         op.reg = OP_REG_DW + v;
-        op.addr = op.value = 0;
         break;
     case OPG_IMM_4:
         v = parseState.fetchNibble();
@@ -174,11 +172,12 @@ static void parseOperand(op_t &op, opgen_t type)
     case OPG_REG_SP:
         op.type = o_reg;
         op.reg = OP_REG_SP;
-        op.addr = op.value = 0;
         break;
     default:
         QASSERT(257, 0);
     }
+
+    return true;
 }
 
 static uint16 parseInstruction(parseinfo_t *pTable, size_t tblSize)
@@ -190,8 +189,15 @@ static uint16 parseInstruction(parseinfo_t *pTable, size_t tblSize)
         if (parseState.compareMask(ins))
         {
             cmd.itype = ins->mnemonic;
-            parseOperand(cmd.Operands[0], ins->op[0]);
-            parseOperand(cmd.Operands[1], ins->op[1]);
+            int opidx = -1;
+            for (int j = 0; j < 3; j++)
+            {
+                if ((ins->op[j] & OPG_RELATIVE) == 0)
+                    opidx++;
+                parseOperand(cmd.Operands[opidx], ins->op[j] & 0xFF);
+                if ((ins->op[j] & OPG_RELATIVE) != 0)
+                    cmd.Operands[opidx].type = o_displ;
+            }
             return 1;
         }
     }
@@ -216,6 +222,7 @@ int idaapi mn101_ana(void)
         parseInstruction(parseTableExtension3, qnumber(parseTableExtension3));
         break;
     case 0x2:
+
         parseState.fetchNibble();
         parseState.fetchNibble();
         parseInstruction(parseTableExtension2, qnumber(parseTableExtension2));
