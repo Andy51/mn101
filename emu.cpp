@@ -11,7 +11,8 @@ static bool flow;        // флажок стопа
 // поставим использование/изменение операндов
 static void near TouchArg(op_t &x,int isAlt,int isload)
 {
-ea_t ea = toEA(codeSeg(x.addr,x.n), x.addr);
+
+    ea_t ea = toEA(codeSeg(x.addr / 2,x.n), x.addr / 2);
   switch ( x.type ) {
   // эта часть не используется !
   case o_void:  break;
