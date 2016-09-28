@@ -18,7 +18,7 @@ def main():
                 line = line[:pos]
 
             # Remove whitespaces
-            line = line.translate(None, ' ')
+            line = line.translate(None, ' \r\n')
 
             values = line.split(',')
             if len(values) < 2:
