@@ -19,129 +19,138 @@ def main():
 
     args = parser.parse_args()
     mnems = set()
-    with open('parsetable.gen.c', 'w') as fd:
-        fd.write('static parseinfo_t parseTable[] = {\n')
-        for line in args.infile.readlines():
-            # Trim comment
-            pos = line.find('#')
-            if pos >= 0:
-                line = line[:pos]
 
-            # Remove whitespaces
-            line = line.translate(None, ' \r\n')
+    parseinfo = ([],[],[])
+    for line in args.infile.readlines():
+        # Trim comment
+        pos = line.find('#')
+        if pos >= 0:
+            line = line[:pos]
 
-            values = line.split(',')
-            if len(values) < 2:
-                continue
+        # Remove whitespaces
+        line = line.translate(None, ' \r\n')
 
-            # Encoding: Translate bit description to code + mask
-            bits = values.pop()
-            bits = [ (b, '1') if b == '1' or b == '0' else ('0','0') for b in bits ]
-            bits = zip(*bits)
-            code = hex(int(''.join(bits[0]), 2))
-            mask = hex(int(''.join(bits[1]), 2))
+        values = line.split(',')
+        if len(values) < 2:
+            continue
 
-            # Mnemonics
-            mnem = values.pop(0)
+        # Encoding: Translate bit description to code + mask
+        bits = values.pop()
+        bits = [ (b, '1') if b == '1' or b == '0' else ('0','0') for b in bits ]
+        bits = zip(*bits)
+        code = int(''.join(bits[0]), 2)
+        mask = int(''.join(bits[1]), 2)
 
-            # Ops
-            ops = [None] * len(values)
-            cflags = []
-            opflags = []
-            opindex = 0
-            opcounter = 0
-            for opcode in values:
-                displ = False
-                changed = False
-                load = False
-                used = False
-                cf_call = False
-                cf_jump = False
-                posflag = 0
-                #Extract flags
-                for c in opcode:
-                    if c.isalnum():
-                        break
-                    if c == '!':
-                        cflags.append('CF_STOP')
-                    elif c == '%':
-                        cf_jump = True
-                    elif c == '^':
-                        cf_call = True
-                    elif c == '>':
-                        changed = True
-                    elif c == '+':
-                        displ = True
-                    elif c == '*':
-                        load = True
-                #Extract position, if any
-                if len(opcode) > 2 and opcode[-2] == '@':
-                    posflag = int(opcode[-1])
-                    opcode = opcode[:-2]
-                opcode = opcode.lstrip('!>^*+%')
+        # Mnemonics
+        mnem = values.pop(0)
 
-                if opcode and not displ:
-                    used = True
-                if opcode.startswith('BRANCH'):
+        # Ops
+        ops = [None] * len(values)
+        cflags = []
+        opflags = []
+        opindex = 0
+        opcounter = 0
+        for opcode in values:
+            displ = False
+            changed = False
+            load = False
+            used = False
+            cf_call = False
+            cf_jump = False
+            posflag = 0
+            #Extract flags
+            for c in opcode:
+                if c.isalnum():
+                    break
+                if c == '!':
+                    cflags.append('CF_STOP')
+                elif c == '%':
                     cf_jump = True
-                if opcode.startswith('CALL'):
+                elif c == '^':
                     cf_call = True
-                if opcode.startswith('BITPOS'):
-                    used = False
+                elif c == '>':
+                    changed = True
+                elif c == '+':
+                    displ = True
+                elif c == '*':
+                    load = True
+            #Extract position, if any
+            if len(opcode) > 2 and opcode[-2] == '@':
+                posflag = int(opcode[-1])
+                opcode = opcode[:-2]
+            opcode = opcode.lstrip('!>^*+%')
 
-                if posflag:
-                    opindex = posflag - 1
-                else:
-                    opindex = opcounter
+            if opcode and not displ:
+                used = True
+            if opcode.startswith('BRANCH'):
+                cf_jump = True
+            if opcode.startswith('CALL'):
+                cf_call = True
+            if opcode.startswith('BITPOS'):
+                used = False
 
-                opval = []
-                if opcode:
-                    opval.append('OPG_' + opcode)
-                if displ:
-                    opval.append('OPGF_RELATIVE')
-                if load:
-                    opval.append('OPGF_LOAD')
-                if posflag:
-                    opval.append('OPGF_SHOWAT_%d' % opcounter)
-                if cf_call:
-                    cflags.append('CF_CALL')
-                if cf_jump:
-                    cflags.append('CF_JUMP')
-                ops[opindex] = ' | '.join(opval)
-                opflags.append((used, changed))
-                opcounter += 1
+            if posflag:
+                opindex = posflag - 1
+            else:
+                opindex = opcounter
 
-            # Update display order dependent CF flags
-            opindex = 0
-            print opflags
-            for used, changed in opflags:
-                if used:
-                    opindex += 1
-                    cflags.append('CF_USE%d' % opindex)
-                if changed:
-                    cflags.append('CF_CHG%d' % opindex)
+            opval = []
+            if opcode:
+                opval.append('OPG_' + opcode)
+            if displ:
+                opval.append('OPGF_RELATIVE')
+            if load:
+                opval.append('OPGF_LOAD')
+            if posflag:
+                opval.append('OPGF_SHOWAT_%d' % opcounter)
+            if cf_call:
+                cflags.append('CF_CALL')
+            if cf_jump:
+                cflags.append('CF_JUMP')
+            ops[opindex] = ' | '.join(opval)
+            opflags.append((used, changed))
+            opcounter += 1
 
-            print cflags
-            mnems.add((mnem, tuple(cflags)))
+        # Update display order dependent CF flags
+        opindex = 0
+        for used, changed in opflags:
+            if used:
+                opindex += 1
+                cflags.append('CF_USE%d' % opindex)
+            if changed:
+                cflags.append('CF_CHG%d' % opindex)
 
-            values = [code, mask, mnem2enum(mnem)] + ops
+        # Split codes by extension
+        extension = code >> 8
+        if extension not in (0,2,3):
+            print 'ERROR: invalid code detected for %s: %s' % (mnem, bin(code))
+            continue
+        if extension > 0:
+            extension -= 1
 
-            print ', '.join(values)
+        code &= 0xFF
+        mask &= 0xFF
+        values = (hex(code), hex(mask), mnem2enum(mnem)) + tuple(ops)
+        parseinfo[extension].append(values)
+        mnems.add((mnem, tuple(cflags)))
 
-            # Output parseinfo
-            fd.write('{ %s },\n' % ', '.join(values))
-        fd.write('};\n\n')
+    # Output parsetables
+    for extension, pinfo in enumerate(parseinfo):
+        with open('parsetable%d.gen.c' % extension, 'w') as fd:
+            for values in pinfo:
+                fd.write('{ %s },\n' % ', '.join(values))
 
-        mnems = list(mnems)
-        mnems.sort()
+    mnems = list(mnems)
+    mnems.sort()
 
-        fd.write('instruc_t Instructions[] = {\n')
+    # Output instruc_t table
+    with open('instructions.gen.c', 'w') as fd:
         outMnem(fd, '', [])
         for mnem in mnems:
             outMnem(fd, *mnem)
-        fd.write('};\n\n')
 
-    with open('parsetable.gen.h', 'w') as fd:
+    # Output instructions enum
+    with open('instructions.gen.h', 'w') as fd:
         fd.write('enum ins_enum_t {\n')
         outMnemEnum(fd, 'NULL = 0')
         for mnem in mnems:
