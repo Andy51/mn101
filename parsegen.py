@@ -35,40 +35,67 @@ def main():
             mnem = values.pop(0)
 
             # Ops
-            ops = []
-            flags = []
-            opnum = 0
+            ops = [None] * len(values)
+            cflags = []
+            opflags = []
+            opindex = 0
+            opcounter = 0
             for opcode in values:
                 displ = False
                 changed = False
                 load = False
+                posflag = 0
                 #Extract flags
                 for c in opcode:
                     if c.isalnum():
                         break
                     if c == '!':
-                        flags.append('CF_STOP')
-                    elif c == '>':
-                        flags.append('CF_JUMP')
+                        cflags.append('CF_STOP')
+                    elif c == '%':
+                        cflags.append('CF_JUMP')
                     elif c == '^':
-                        flags.append('CF_CALL')
-                    elif c == '*':
+                        cflags.append('CF_CALL')
+                    elif c == '>':
                         changed = True
                     elif c == '+':
                         displ = True
-                    elif c == '@':
+                    elif c == '*':
                         load = True
+                #Extract position, if any
+                if opcode[-2] == '@':
+                    posflag = int(opcode[-1])
+                    opcode = opcode[:-2]
+                opcode = opcode.lstrip('!>^*+%')
+
+                if posflag:
+                    opindex = posflag - 1
+                else:
+                    opindex = opcounter
+
+                opval = ['OPG_' + opcode]
+                if displ:
+                    opval.append('OPGF_RELATIVE')
+                if load:
+                    opval.append('OPFG_LOAD')
+                if posflag:
+                    opval.append('OPFG_SHOWAT_%d' % opcounter)
+                    pass
+                ops[opindex] = ' | '.join(opval)
+                opflags.append((displ, changed))
+                opcounter += 1
+
+            # Update display order dependent CF flags
+            opindex = 0
+            print opflags
+            for displ, changed in opflags:
                 if not displ:
-                    opnum += 1
-                    flags.append('CF_USE%d' % opnum)
+                    opindex += 1
+                    cflags.append('CF_USE%d' % opindex)
                 if changed:
-                    flags.append('CF_CHG%d' % opnum)
-                opcode = opcode.lstrip('!>^*+@')
+                    cflags.append('CF_CHG%d' % opindex)
 
-                opval = 'OPG_' + opcode + ('|OPGF_RELATIVE' if displ else '') + ('|OPGF_LOAD' if load else '')
-                ops.append(opval)
-
-            mnems.add((mnem, tuple(flags)))
+            print cflags
+            mnems.add((mnem, tuple(cflags)))
 
             values = [code, mask, mnem2enum(mnem)] + ops
 
