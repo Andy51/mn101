@@ -98,9 +98,9 @@ def main():
                 if displ:
                     opval.append('OPGF_RELATIVE')
                 if load:
-                    opval.append('OPFG_LOAD')
+                    opval.append('OPGF_LOAD')
                 if posflag:
-                    opval.append('OPFG_SHOWAT_%d' % opcounter)
+                    opval.append('OPGF_SHOWAT_%d' % opcounter)
                 if cf_call:
                     cflags.append('CF_CALL')
                 if cf_jump:
