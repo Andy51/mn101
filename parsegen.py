@@ -125,7 +125,7 @@ def main():
         for mnem in mnems:
             cflags = '|'.join(mnem[1])
             if not cflags:
-                clfags = '0'
+                cflags = '0'
             name = '"%s",' % mnem[0]
             fd.write('{ %-10s %-32s },\n' % (name, cflags))
         fd.write('};\n\n')
