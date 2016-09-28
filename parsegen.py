@@ -45,6 +45,8 @@ def main():
                 changed = False
                 load = False
                 used = False
+                cf_call = False
+                cf_jump = False
                 posflag = 0
                 #Extract flags
                 for c in opcode:
@@ -53,9 +55,9 @@ def main():
                     if c == '!':
                         cflags.append('CF_STOP')
                     elif c == '%':
-                        cflags.append('CF_JUMP')
+                        cf_jump = True
                     elif c == '^':
-                        cflags.append('CF_CALL')
+                        cf_call = True
                     elif c == '>':
                         changed = True
                     elif c == '+':
@@ -67,8 +69,13 @@ def main():
                     posflag = int(opcode[-1])
                     opcode = opcode[:-2]
                 opcode = opcode.lstrip('!>^*+%')
+
                 if opcode and not displ:
                     used = True
+                if opcode.startswith('BRANCH'):
+                    cf_jump = True
+                if opcode.startswith('CALL'):
+                    cf_call = True
 
                 if posflag:
                     opindex = posflag - 1
@@ -82,7 +89,10 @@ def main():
                     opval.append('OPFG_LOAD')
                 if posflag:
                     opval.append('OPFG_SHOWAT_%d' % opcounter)
-                    pass
+                if cf_call:
+                    cflags.append('CF_CALL')
+                if cf_jump:
+                    cflags.append('CF_JUMP')
                 ops[opindex] = ' | '.join(opval)
                 opflags.append((used, changed))
                 opcounter += 1
@@ -107,6 +117,9 @@ def main():
             # Output parseinfo
             fd.write('{ %s },\n' % ', '.join(values))
         fd.write('};\n\n')
+
+        mnems = list(mnems)
+        mnems.sort()
 
         fd.write('instruc_t Instructions[] = {\n')
         for mnem in mnems:
