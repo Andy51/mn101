@@ -12,14 +12,39 @@ typedef enum {
     OPG_D_DST,
     OPG_DW_SRC,
     OPG_DW_DST,
-    OPG_IMM_4,
-    OPG_IMM4_SIGNED,
-    OPG_BRANCH_4,
-    OPG_BRANCH_7,
-    OPG_BRANCH_11,
+    OPG_D0_DW_DST, //#
+    OPG_D1_DW_DST, //#
+    OPG_A_8, //#
+    OPG_A_SRC, //#
+    OPG_A_DST, //#
+    OPG_IMM4,
+    OPG_IMM4_S,
+    OPG_IMM8, //#
+    OPG_IMM8_S, //#
+    OPG_IMM12, //#
+    OPG_IMM16, //#
+    OPG_IO8, //#
+    OPG_BRANCH4,
+    OPG_BRANCH7,
+    OPG_BRANCH11,
+    OPG_BRANCH18, //#
+    OPG_BRANCH20, //#
+    OPG_CALL12, //#
+    OPG_CALL16, //#
+    OPG_CALL18, //#
+    OPG_CALL20, //#
+    OPG_CALLTBL4, //#
     OPG_REG_SP,
+    OPG_REG_PSW, //#
+    OPG_REG_HA, //#
+    OPG_BITPOS, //#
+    OPG_REP3, //#
 
-    OPG_RELATIVE = 0x100
+    OPGF_RELATIVE = 0x100,//#
+    OPGF_LOAD = 0X200,//#
+    OPGF_SHOWAT_0 = 0x1000, //#
+    OPGF_SHOWAT_1 = 0x2000,
+    OPGF_SHOWAT_2 = 0x3000,
 
 } opgen_t;
 
@@ -30,32 +55,17 @@ typedef struct
 {
     uchar code;
     uchar mask;
-    nameNum mnemonic;
+    ins_enum_t mnemonic;
     uint32 op[3];
     uchar flags;
 
 } parseinfo_t;
 
 
-static parseinfo_t parseTable[] = {
-    { 0xFD, 0xFF, ADDW, OPG_IMM4_SIGNED, OPG_REG_SP}, //ADDW imm4,SP
-    { 0xF6, 0xFE, MOVW, OPG_DW_DST, OPG_IMM_4, OPG_REG_SP | OPG_RELATIVE }, //MOVW, DWn,(d4,SP), 1111, 011D, <d4>
-    { 0xE6, 0xFE, MOVW, OPG_IMM_4, OPG_REG_SP | OPG_RELATIVE, OPG_DW_DST }, //MOVW, (d4,SP),DWm, 1110, 011d, <d4>
-    { 0x8B, 0xFF, BNE, OPG_BRANCH_7 }, //BNE, label, 1000, 1011, <d7., ...H
-    { 0xEE, 0xFE, BRA, OPG_BRANCH_4 }, //BRA label 1110 111H <d4>
-    { 0x64, 0xFC, MOV, OPG_IMM_4, OPG_REG_SP | OPG_RELATIVE, OPG_D_DST }, //MOV, (d4,SP),Dm, , 0110, 01Dm, <d4>
-    { 0x01, 0xFF, RTS }, //RTS, 0000, 0001
-};
+#include "parsetable.gen.c"
 
-static parseinfo_t parseTableExtension2[] = {
-    { 0x84, 0xFC, CMPW, OPG_DW_SRC, OPG_DW_DST }, //CMPW, DWn,DWm, 0010, 1000, 01Dd
-    { 0x34, 0xFF, BNC, OPG_BRANCH_11 }, //BNC, label, 0010, 0011, 0100, <d11, ...., ...H
-    { 0x24, 0xFF, BNC, OPG_BRANCH_7 }, //BNC, label, 0010 0010 0100 <d7. ...H
-};
-
-static parseinfo_t parseTableExtension3[] = {
-    { 0xA0, 0xF0, XOR, OPG_D_SRC, OPG_D_DST}, //XOR, Dn,Dm, , 0011, 1010, DnDm
-};
+static parseinfo_t parseTableExtension2[] = {0};
+static parseinfo_t parseTableExtension3[] = {0};
 
 
 struct parseState_t
@@ -146,14 +156,14 @@ static bool parseOperand(op_t &op, int type)
         op.type = o_reg;
         op.reg = OP_REG_DW + v;
         break;
-    case OPG_IMM_4:
+    case OPG_IMM4:
         v = parseState.fetchNibble();
         op.addr = op.value = v;
         op.type = o_imm;
         op.dtyp = dt_byte;
         op.flags |= OF_NUMBER;
         break;
-    case OPG_IMM4_SIGNED:
+    case OPG_IMM4_S:
         imm = parseState.fetchNibble();
         imm = (imm << 28) >> 28; // Sign-extend imm#4 to imm#32
         op.addr = op.value = imm;
@@ -161,19 +171,19 @@ static bool parseOperand(op_t &op, int type)
         op.dtyp = dt_byte;
         op.flags |= OF_NUMBER;
         break;
-    case OPG_BRANCH_4:
+    case OPG_BRANCH4:
         imm = parseState.fetchNibble();
         imm = (imm << 28) >> 28; // Sign-extend imm#4 to imm#32
         imm = (imm << 1) | (parseState.masked & 1); // Extract H
         op.addr = op.value = parseState.pc + imm + parseState.sz;
         op.type = o_near;
         break;
-    case OPG_BRANCH_7:
+    case OPG_BRANCH7:
         imm8 = parseState.fetchByte(); //Signed imm#8
         op.addr = op.value = parseState.pc + imm8 + parseState.sz;
         op.type = o_near;
         break;
-    case OPG_BRANCH_11:
+    case OPG_BRANCH11:
         imm = parseState.fetchByte() | (parseState.fetchNibble() << 8); //Signed imm#12
         imm = (imm << 20) >> 20; // Sign-extend imm#12 to imm#32
         op.addr = op.value = parseState.pc + imm + parseState.sz;
@@ -202,10 +212,10 @@ static bool parseInstruction(parseinfo_t *pTable, size_t tblSize)
             int opidx = -1;
             for (int j = 0; j < 3; j++)
             {
-                if ((ins->op[j] & OPG_RELATIVE) == 0)
+                if ((ins->op[j] & OPGF_RELATIVE) == 0)
                     opidx++;
                 parseOperand(cmd.Operands[opidx], ins->op[j] & 0xFF);
-                if ((ins->op[j] & OPG_RELATIVE) != 0)
+                if ((ins->op[j] & OPGF_RELATIVE) != 0)
                     cmd.Operands[opidx].type = o_displ;
             }
             return true;

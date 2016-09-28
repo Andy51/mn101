@@ -10,18 +10,11 @@
 // List of instructions
 extern instruc_t Instructions[];
 
+#include "parsetable.gen.h"
+
 enum nameNum ENUM_SIZE(uint16)
 {
 mn102_null = 0,           // Unknown Operation
-ADDW,
-MOVW,
-BRA,
-BNE,
-BNC,
-MOV,
-RTS,
-CMPW,
-XOR,
 mn102_add,
 mn102_addc,
 mn102_addnf,
