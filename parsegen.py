@@ -82,7 +82,9 @@ def main():
                 else:
                     opindex = opcounter
 
-                opval = ['OPG_' + opcode]
+                opval = []
+                if opcode:
+                    opval.append('OPG_' + opcode)
                 if displ:
                     opval.append('OPGF_RELATIVE')
                 if load:
