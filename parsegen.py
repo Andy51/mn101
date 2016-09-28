@@ -144,6 +144,7 @@ def main():
         outMnemEnum(fd, 'NULL = 0')
         for mnem in mnems:
             outMnemEnum(fd, mnem[0])
+        outMnemEnum(fd, 'LAST')
         fd.write('};\n\n')
 
 if __name__ == '__main__':
