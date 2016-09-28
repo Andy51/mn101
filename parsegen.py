@@ -86,6 +86,8 @@ def main():
                     cf_jump = True
                 if opcode.startswith('CALL'):
                     cf_call = True
+                if opcode.startswith('BITPOS'):
+                    used = False
 
                 if posflag:
                     opindex = posflag - 1
