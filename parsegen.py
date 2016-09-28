@@ -3,6 +3,16 @@ import argparse, re
 def mnem2enum(m):
     return 'INS_' + m
 
+def outMnem(fd, mnem, flaglist):
+    cflags = '|'.join(flaglist)
+    if not cflags:
+        cflags = '0'
+    name = '"%s",' % mnem
+    fd.write('{ %-10s %-32s },\n' % (name, cflags))
+
+def outMnemEnum(fd, mnem):
+    fd.write('    %s,\n' % mnem2enum(mnem))
+
 def main():
     parser = argparse.ArgumentParser(description='Instruction set parsing table generator.')
     parser.add_argument('infile',  type=argparse.FileType('r'))
@@ -124,19 +134,16 @@ def main():
         mnems.sort()
 
         fd.write('instruc_t Instructions[] = {\n')
+        outMnem(fd, '', [])
         for mnem in mnems:
-            cflags = '|'.join(mnem[1])
-            if not cflags:
-                cflags = '0'
-            name = '"%s",' % mnem[0]
-            fd.write('{ %-10s %-32s },\n' % (name, cflags))
+            outMnem(fd, *mnem)
         fd.write('};\n\n')
 
     with open('parsetable.gen.h', 'w') as fd:
         fd.write('enum ins_enum_t {\n')
-        fd.write('INS_NULL = 0,\n')
+        outMnemEnum(fd, 'NULL = 0')
         for mnem in mnems:
-            fd.write('%s,\n' % mnem2enum(mnem[0]))
+            outMnemEnum(fd, mnem[0])
         fd.write('};\n\n')
 
 if __name__ == '__main__':
