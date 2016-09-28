@@ -41,6 +41,7 @@ def main():
             for opcode in values:
                 displ = False
                 changed = False
+                load = False
                 #Extract flags
                 for c in opcode:
                     if c.isalnum():
@@ -55,14 +56,16 @@ def main():
                         changed = True
                     elif c == '+':
                         displ = True
+                    elif c == '@':
+                        load = True
                 if not displ:
                     opnum += 1
                     flags.append('CF_USE%d' % opnum)
                 if changed:
                     flags.append('CF_CHG%d' % opnum)
-                opcode = opcode.lstrip('!>^*+')
+                opcode = opcode.lstrip('!>^*+@')
 
-                opval = 'OPG_' + opcode + ('|OPG_RELATIVE' if displ else '')
+                opval = 'OPG_' + opcode + ('|OPGF_RELATIVE' if displ else '') + ('|OPGF_LOAD' if load else '')
                 ops.append(opval)
 
             mnems.add((mnem, tuple(flags)))
