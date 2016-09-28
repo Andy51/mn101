@@ -60,7 +60,6 @@ def main():
                     flags.append('CF_USE%d' % opnum)
                 if changed:
                     flags.append('CF_CHG%d' % opnum)
-                print flags
                 opcode = opcode.lstrip('!>^*+')
 
                 opval = 'OPG_' + opcode + ('|OPG_RELATIVE' if displ else '')
