@@ -44,6 +44,7 @@ def main():
                 displ = False
                 changed = False
                 load = False
+                used = False
                 posflag = 0
                 #Extract flags
                 for c in opcode:
@@ -62,10 +63,12 @@ def main():
                     elif c == '*':
                         load = True
                 #Extract position, if any
-                if opcode[-2] == '@':
+                if len(opcode) > 2 and opcode[-2] == '@':
                     posflag = int(opcode[-1])
                     opcode = opcode[:-2]
                 opcode = opcode.lstrip('!>^*+%')
+                if opcode and not displ:
+                    used = True
 
                 if posflag:
                     opindex = posflag - 1
@@ -81,14 +84,14 @@ def main():
                     opval.append('OPFG_SHOWAT_%d' % opcounter)
                     pass
                 ops[opindex] = ' | '.join(opval)
-                opflags.append((displ, changed))
+                opflags.append((used, changed))
                 opcounter += 1
 
             # Update display order dependent CF flags
             opindex = 0
             print opflags
-            for displ, changed in opflags:
-                if not displ:
+            for used, changed in opflags:
+                if used:
                     opindex += 1
                     cflags.append('CF_USE%d' % opindex)
                 if changed:
@@ -107,9 +110,11 @@ def main():
 
         fd.write('instruc_t Instructions[] = {\n')
         for mnem in mnems:
-            flags = mnem[1]
+            cflags = '|'.join(mnem[1])
+            if not cflags:
+                clfags = '0'
             name = '"%s",' % mnem[0]
-            fd.write('{ %-10s %-32s },\n' % (name, '|'.join(flags)))
+            fd.write('{ %-10s %-32s },\n' % (name, cflags))
         fd.write('};\n\n')
 
     with open('parsetable.gen.h', 'w') as fd:
