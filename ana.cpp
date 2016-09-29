@@ -62,10 +62,17 @@ typedef struct
 } parseinfo_t;
 
 
-#include "parsetable.gen.c"
+static parseinfo_t parseTable[] = {
+#include "parsetable0.gen.c"
+};
 
-static parseinfo_t parseTableExtension2[] = {0};
-static parseinfo_t parseTableExtension3[] = {0};
+static parseinfo_t parseTableExtension2[] = {
+#include "parsetable1.gen.c"
+};
+
+static parseinfo_t parseTableExtension3[] = {
+#include "parsetable2.gen.c"
+};
 
 
 struct parseState_t

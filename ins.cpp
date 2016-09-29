@@ -6,6 +6,8 @@
 
 #include "pan.hpp"
 
+instruc_t Instructions[] = {
+#include "instructions.gen.c"
+};
 
-
-//CASSERT(qnumber(Instructions) == INS_LAST);
+CASSERT(qnumber(Instructions) == INS_LAST);

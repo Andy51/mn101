@@ -10,7 +10,9 @@
 // List of instructions
 extern instruc_t Instructions[];
 
-#include "parsetable.gen.h"
+enum ins_enum_t {
+#include "instructions.gen.h"
+};
 
 enum nameNum ENUM_SIZE(uint16)
 {
