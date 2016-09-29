@@ -45,6 +45,7 @@ typedef enum {
     OPGF_SHOWAT_0 = 0x1000, //#
     OPGF_SHOWAT_1 = 0x2000,
     OPGF_SHOWAT_2 = 0x3000,
+    OPGF_SHOWAT_MASK = 0x7000
 
 } opgen_t;
 
@@ -121,7 +122,7 @@ struct parseState_t
         return byte;
     }
 
-    bool compareMask(parseinfo_t *pi)
+    bool compareMask(const parseinfo_t *pi)
     {
         if ((code & pi->mask) == pi->code)
         {
@@ -207,9 +208,28 @@ static bool parseOperand(op_t &op, int type)
     return true;
 }
 
-static bool parseInstruction(parseinfo_t *pTable, size_t tblSize)
+static void mergeOps(op_t &src, op_t &dst)
 {
-    parseinfo_t *ins;
+    QASSERT(258, &src != &dst);
+
+    dst.type = src.type;
+    dst.reg += src.reg;
+    dst.addr += src.addr;
+    dst.value += src.value;
+    dst.flags |= src.flags;
+    dst.dtyp = src.dtyp;
+
+    src.type = 0;
+    src.reg = 0;
+    src.addr = 0;
+    src.value = 0;
+    src.flags = 0;
+    src.dtyp = 0;
+}
+
+static bool parseInstruction(const parseinfo_t *pTable, size_t tblSize)
+{
+    const parseinfo_t *ins;
     for (size_t i = 0; i < tblSize; i++)
     {
         ins = &pTable[i];
@@ -219,12 +239,31 @@ static bool parseInstruction(parseinfo_t *pTable, size_t tblSize)
             int opidx = -1;
             for (int j = 0; j < 3; j++)
             {
-                if ((ins->op[j] & OPGF_RELATIVE) == 0)
-                    opidx++;
+                opidx = (ins->op[j] & OPGF_SHOWAT_MASK) >> 12;
+                if (opidx != 0)
+                    opidx--;
+                else
+                    opidx = j;
                 parseOperand(cmd.Operands[opidx], ins->op[j] & 0xFF);
                 if ((ins->op[j] & OPGF_RELATIVE) != 0)
                     cmd.Operands[opidx].type = o_displ;
             }
+
+            // Merge displacement ops
+            int dstidx = 0;
+            for (int srcidx = 0; srcidx < 3; srcidx++)
+            {
+                if (cmd.Operands[srcidx].type == o_displ)
+                {
+                    dstidx--;
+                }
+                if (srcidx != dstidx)
+                {
+                    mergeOps(cmd.Operands[srcidx], cmd.Operands[dstidx]);
+                }
+                dstidx++;
+            }
+
             return true;
         }
     }
