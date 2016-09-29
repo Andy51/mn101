@@ -50,6 +50,8 @@ enum mn101_registers {
     OP_REG_DW1,
 
     OP_REG_SP,
+    OP_REG_PSW,
+    OP_REG_HA,
 };
 
 #if IDP_INTERFACE_VERSION > 37

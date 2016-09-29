@@ -28,7 +28,7 @@ static const char *const mn101_registerNames[] =
     "D0","D1","D2","D3",
     "A0","A1",
     "DW0","DW1",
-    "SP",
+    "SP", "PSW", "HA"
 };
 
 netnode helper;

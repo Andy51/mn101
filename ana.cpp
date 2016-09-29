@@ -134,6 +134,9 @@ struct parseState_t
 
 } parseState;
 
+#define IOTOP 0x3F00
+#define SRVT 0x4080
+#define SIGN_EXTEND(nbits, val) (((val) << (32 - (nbits))) >> (32 - (nbits)))
 
 static bool parseOperand(op_t &op, int type)
 {
@@ -164,43 +167,149 @@ static bool parseOperand(op_t &op, int type)
         op.type = o_reg;
         op.reg = OP_REG_DW + v;
         break;
-    case OPG_IMM4:
-        v = parseState.fetchNibble();
-        op.addr = op.value = v;
-        op.type = o_imm;
-        op.dtyp = dt_byte;
-        op.flags |= OF_NUMBER;
+    case OPG_D0_DW_DST:
+    case OPG_D1_DW_DST:
+        v = parseState.masked & 0x1;
+        op.type = o_reg;
+        op.reg = OP_REG_D + v * 2;
+        if (type == OPG_D1_DW_DST)
+            op.reg++;
         break;
+    case OPG_A_8:
+        v = (parseState.masked & 0x4) >> 2;
+        op.type = o_reg;
+        op.reg = OP_REG_A + v;
+        break;
+    case OPG_A_SRC:
+        v = (parseState.masked & 0x2) >> 1;
+        op.type = o_reg;
+        op.reg = OP_REG_A + v;
+        break;
+    case OPG_A_DST:
+        v = parseState.masked & 0x1;
+        op.type = o_reg;
+        op.reg = OP_REG_A + v;
+        break;
+
+    case OPG_IMM4:
     case OPG_IMM4_S:
         imm = parseState.fetchNibble();
-        imm = (imm << 28) >> 28; // Sign-extend imm#4 to imm#32
+        if(type == OPG_IMM4_S)
+            imm = SIGN_EXTEND(4, imm);
         op.addr = op.value = imm;
         op.type = o_imm;
         op.dtyp = dt_byte;
         op.flags |= OF_NUMBER;
         break;
+    case OPG_IMM8:
+    case OPG_IMM8_S:
+        imm = parseState.fetchByte();
+        if (type == OPG_IMM8_S)
+            imm = SIGN_EXTEND(8, imm);
+        op.addr = op.value = imm;
+        op.type = o_imm;
+        op.dtyp = dt_byte;
+        op.flags |= OF_NUMBER;
+        break;
+    case OPG_IMM12:
+        imm = parseState.fetchByte() << 4;
+        imm |= parseState.fetchNibble();
+        op.addr = op.value = imm;
+        op.type = o_imm;
+        op.dtyp = dt_word;
+        op.flags |= OF_NUMBER;
+        break;
+    case OPG_IMM16:
+        imm = parseState.fetchByte() << 8;
+        imm |= parseState.fetchByte();
+        op.addr = op.value = imm;
+        op.type = o_imm;
+        op.dtyp = dt_word;
+        op.flags |= OF_NUMBER;
+        break;
+    case OPG_IO8:
+        imm = parseState.fetchByte();
+        op.addr = IOTOP + imm;
+        op.type = o_mem;
+        op.dtyp = dt_byte;
+        break;
+
     case OPG_BRANCH4:
         imm = parseState.fetchNibble();
-        imm = (imm << 28) >> 28; // Sign-extend imm#4 to imm#32
+        imm = SIGN_EXTEND(4, imm);
         imm = (imm << 1) | (parseState.masked & 1); // Extract H
-        op.addr = op.value = parseState.pc + imm + parseState.sz;
+        op.addr = parseState.pc + imm + parseState.sz;
         op.type = o_near;
         break;
     case OPG_BRANCH7:
         imm8 = parseState.fetchByte(); //Signed imm#8
-        op.addr = op.value = parseState.pc + imm8 + parseState.sz;
+        op.addr = parseState.pc + imm8 + parseState.sz;
         op.type = o_near;
         break;
     case OPG_BRANCH11:
         imm = parseState.fetchByte() | (parseState.fetchNibble() << 8); //Signed imm#12
-        imm = (imm << 20) >> 20; // Sign-extend imm#12 to imm#32
-        op.addr = op.value = parseState.pc + imm + parseState.sz;
+        imm = SIGN_EXTEND(12, imm);
+        op.addr = parseState.pc + imm + parseState.sz;
         op.type = o_near;
         break;
+    case OPG_BRANCH18:
+    case OPG_CALL18:
+        imm = (parseState.fetchByte() << 8) | parseState.fetchByte();
+        imm |= (parseState.masked & 0x6) << 15; //aa
+        imm = (imm << 1) | (parseState.masked & 0x1); //H
+        op.addr = imm;
+        op.type = o_near;
+        break;
+    case OPG_BRANCH20:
+    case OPG_CALL20:
+        v = parseState.fetchByte();
+        imm = (parseState.fetchByte() << 8) | parseState.fetchByte();
+        imm |= (v & 0x1E) << 15; //Bbbb
+        imm = (imm << 1) | (v & 0x1); //H
+        op.addr = imm;
+        op.type = o_near;
+        break;
+
+    case OPG_CALL12:
+        imm = parseState.fetchByte() | (parseState.fetchNibble() << 8);
+        imm = SIGN_EXTEND(12, imm);
+        imm = (imm << 1) | (parseState.masked & 0x1); //H
+        op.addr = parseState.pc + imm + parseState.sz;
+        op.type = o_near;
+        break;
+    case OPG_CALL16:
+        imm = (parseState.fetchByte() << 8) | parseState.fetchByte();
+        imm = SIGN_EXTEND(16, imm);
+        imm = (imm << 1) | (parseState.masked & 0x1); //H
+        op.addr = parseState.pc + imm + parseState.sz;
+        op.type = o_near;
+        break;
+    case OPG_CALLTBL4:
+        imm = parseState.fetchNibble();
+        op.addr = SRVT + (imm << 2);
+        op.type = o_mem;
+        break;
+
     case OPG_REG_SP:
         op.type = o_reg;
         op.reg = OP_REG_SP;
         break;
+    case OPG_REG_PSW:
+        op.type = o_reg;
+        op.reg = OP_REG_PSW;
+        break;
+    case OPG_REG_HA:
+        op.type = o_reg;
+        op.reg = OP_REG_HA;
+        break;
+
+    case OPG_BITPOS:
+    case OPG_REP3:
+        imm = parseState.masked & 0x7;
+        op.type = o_imm;
+        op.value = imm;
+        break;
+
     default:
         QASSERT(257, 0);
     }
