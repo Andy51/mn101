@@ -322,7 +322,8 @@ static void mergeOps(op_t &src, op_t &dst)
     QASSERT(258, &src != &dst);
 
     dst.type = src.type;
-    dst.reg += src.reg;
+    QASSERT(258, dst.reg == OP_REG_NONE);
+    dst.reg = src.reg;
     dst.addr += src.addr;
     dst.value += src.value;
     dst.flags |= src.flags;
@@ -354,8 +355,18 @@ static bool parseInstruction(const parseinfo_t *pTable, size_t tblSize)
                 else
                     opidx = j;
                 parseOperand(cmd.Operands[opidx], ins->op[j] & 0xFF);
+                if ((ins->op[j] & OPGF_LOAD) != 0)
+                {
+                    if (cmd.Operands[opidx].type == o_reg)
+                        cmd.Operands[opidx].type = o_phrase;
+                    else if (cmd.Operands[opidx].type == o_imm)
+                        cmd.Operands[opidx].type = o_mem;
+                }
                 if ((ins->op[j] & OPGF_RELATIVE) != 0)
+                {
                     cmd.Operands[opidx].type = o_displ;
+                    cmd.Operands[opidx].addr = cmd.Operands[opidx].value;
+                }
             }
 
             // Merge displacement ops

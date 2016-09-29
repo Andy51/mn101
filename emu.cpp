@@ -20,6 +20,7 @@ static void near TouchArg(op_t &x,int isAlt,int isload)
   case o_reg:           break;
 
   // попробуем рассматривать как смещение
+  case o_phrase:
   case o_displ: // если не форсирован и помечен смещением
                                 if ( !isAlt && isOff(uFlag,x.n) ){
                         // если изменяется - поставим переменную

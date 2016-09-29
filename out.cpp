@@ -28,14 +28,18 @@ bool idaapi mn101_outop(op_t &x)
     {
     // ссылка на память с использованием регистра (регистров)
     // (disp,Ri)
+    case o_phrase:
     case o_displ: // открывающая скобка есть всегда
                   // регистр пристуствует?
-      out_symbol('(');
-      OutValue(x);
-      out_symbol(',');
-      out_register(ph.regNames[x.reg]);
-      out_symbol(')');
-      break;
+        out_symbol('(');
+        if (x.addr != 0)
+        {
+            OutValue(x, OOF_ADDR);
+            out_symbol(',');
+        }
+        out_register(ph.regNames[x.reg]);
+        out_symbol(')');
+        break;
 
     // регистр
     case o_reg:
