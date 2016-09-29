@@ -391,7 +391,7 @@ int idaapi mn102_ana(void)
         uchar R1, R2;
         // получим первый байт инструкции
         uchar code = ua_next_byte();
-        
+
         // анализируем старшую часть
         R1=code&3;
         R2=(code>>2)&3;
