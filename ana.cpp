@@ -212,16 +212,16 @@ static bool parseOperand(op_t &op, int type)
         op.flags |= OF_NUMBER;
         break;
     case OPG_IMM12:
-        imm = parseState.fetchByte() << 4;
-        imm |= parseState.fetchNibble();
+        imm = parseState.fetchByte();
+        imm |= parseState.fetchNibble() << 8;
         op.addr = op.value = imm;
         op.type = o_imm;
         op.dtyp = dt_word;
         op.flags |= OF_NUMBER;
         break;
     case OPG_IMM16:
-        imm = parseState.fetchByte() << 8;
-        imm |= parseState.fetchByte();
+        imm = parseState.fetchByte();
+        imm |= parseState.fetchByte() << 8;
         op.addr = op.value = imm;
         op.type = o_imm;
         op.dtyp = dt_word;
@@ -254,7 +254,7 @@ static bool parseOperand(op_t &op, int type)
         break;
     case OPG_BRANCH18:
     case OPG_CALL18:
-        imm = (parseState.fetchByte() << 8) | parseState.fetchByte();
+        imm = parseState.fetchByte() | (parseState.fetchByte() << 8);
         imm |= (parseState.masked & 0x6) << 15; //aa
         imm = (imm << 1) | (parseState.masked & 0x1); //H
         op.addr = imm;
@@ -263,7 +263,7 @@ static bool parseOperand(op_t &op, int type)
     case OPG_BRANCH20:
     case OPG_CALL20:
         v = parseState.fetchByte();
-        imm = (parseState.fetchByte() << 8) | parseState.fetchByte();
+        imm = parseState.fetchByte() | (parseState.fetchByte() << 8);
         imm |= (v & 0x1E) << 15; //Bbbb
         imm = (imm << 1) | (v & 0x1); //H
         op.addr = imm;
@@ -278,7 +278,7 @@ static bool parseOperand(op_t &op, int type)
         op.type = o_near;
         break;
     case OPG_CALL16:
-        imm = (parseState.fetchByte() << 8) | parseState.fetchByte();
+        imm = parseState.fetchByte() | (parseState.fetchByte() << 8);
         imm = SIGN_EXTEND(16, imm);
         imm = (imm << 1) | (parseState.masked & 0x1); //H
         op.addr = parseState.pc + imm + parseState.sz;
