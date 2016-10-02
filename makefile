@@ -18,7 +18,7 @@ $(F)ana$(O)     : $(I)area.hpp $(I)auto.hpp $(I)bitrange.hpp $(I)bytes.hpp   \
 	          $(I)loader.hpp $(I)nalt.hpp $(I)name.hpp $(I)netnode.hpp  \
 	          $(I)offset.hpp $(I)pro.h $(I)queue.hpp $(I)segment.hpp    \
 	          $(I)ua.hpp $(I)xref.hpp ../idaidp.hpp ana.cpp ins.hpp     \
-	          pan.hpp instructions.gen.h parsetable0.gen.c              \
+	          mn101.hpp instructions.gen.h parsetable0.gen.c            \
 	          parsetable1.gen.c parsetable2.gen.c
 $(F)emu$(O)     : $(I)area.hpp $(I)auto.hpp $(I)bitrange.hpp $(I)bytes.hpp   \
 	          $(I)fpro.h $(I)funcs.hpp $(I)ida.hpp $(I)idp.hpp          \
@@ -26,26 +26,26 @@ $(F)emu$(O)     : $(I)area.hpp $(I)auto.hpp $(I)bitrange.hpp $(I)bytes.hpp   \
 	          $(I)loader.hpp $(I)nalt.hpp $(I)name.hpp $(I)netnode.hpp  \
 	          $(I)offset.hpp $(I)pro.h $(I)queue.hpp $(I)segment.hpp    \
 	          $(I)ua.hpp $(I)xref.hpp ../idaidp.hpp emu.cpp ins.hpp     \
-	          pan.hpp instructions.gen.h
+	          mn101.hpp instructions.gen.h
 $(F)ins$(O)     : $(I)area.hpp $(I)auto.hpp $(I)bitrange.hpp $(I)bytes.hpp   \
 	          $(I)fpro.h $(I)funcs.hpp $(I)ida.hpp $(I)idp.hpp          \
 	          $(I)kernwin.hpp $(I)lines.hpp $(I)llong.hpp               \
 	          $(I)loader.hpp $(I)nalt.hpp $(I)name.hpp $(I)netnode.hpp  \
 	          $(I)offset.hpp $(I)pro.h $(I)queue.hpp $(I)segment.hpp    \
 	          $(I)ua.hpp $(I)xref.hpp ../idaidp.hpp ins.cpp ins.hpp     \
-	          pan.hpp instructions.gen.h instructions.gen.c
+	          mn101.hpp instructions.gen.h instructions.gen.c
 $(F)out$(O)     : $(I)area.hpp $(I)auto.hpp $(I)bitrange.hpp $(I)bytes.hpp   \
 	          $(I)fpro.h $(I)funcs.hpp $(I)ida.hpp $(I)idp.hpp          \
 	          $(I)kernwin.hpp $(I)lines.hpp $(I)llong.hpp               \
 	          $(I)loader.hpp $(I)nalt.hpp $(I)name.hpp $(I)netnode.hpp  \
 	          $(I)offset.hpp $(I)pro.h $(I)queue.hpp $(I)segment.hpp    \
 	          $(I)ua.hpp $(I)xref.hpp ../idaidp.hpp ins.hpp out.cpp     \
-	          pan.hpp instructions.gen.h
+	          mn101.hpp instructions.gen.h
 $(F)reg$(O)     : $(I)area.hpp $(I)auto.hpp $(I)bitrange.hpp $(I)bytes.hpp   \
 	          $(I)diskio.hpp $(I)entry.hpp $(I)fpro.h $(I)funcs.hpp     \
 	          $(I)ida.hpp $(I)idp.hpp $(I)kernwin.hpp $(I)lines.hpp     \
 	          $(I)llong.hpp $(I)loader.hpp $(I)nalt.hpp $(I)name.hpp    \
 	          $(I)netnode.hpp $(I)offset.hpp $(I)pro.h $(I)queue.hpp    \
 	          $(I)segment.hpp $(I)srarea.hpp $(I)ua.hpp $(I)xref.hpp    \
-	          ../idaidp.hpp ../iocommon.cpp ins.hpp pan.hpp reg.cpp     \
+	          ../idaidp.hpp ../iocommon.cpp ins.hpp mn101.hpp reg.cpp    \
 	          instructions.gen.h

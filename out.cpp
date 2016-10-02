@@ -1,37 +1,28 @@
-/*
- *      Panasonic MN102 (PanaXSeries) processor module for IDA.
- *      Copyright (c) 2000-2006 Konstantin Norvatoff, <konnor@bk.ru>
- *      Freeware.
- */
+#include "mn101.hpp"
 
-#include "pan.hpp"
+extern char deviceparams[];
+extern char device[];
 
-//----------------------------------------------------------------------
 static void OutVarName(op_t &x)
 {
-  ea_t addr = x.addr >> 1;
-  bool H = x.addr & 1;
-  ea_t toea = toEA(codeSeg(addr,x.n), addr);
-  if ( out_name_expr(x, toea, addr) )
-    return;
-  OutValue(x, OOF_ADDR | OOF_NUMBER | OOFS_NOSIGN | OOFW_32);
-  if(H) out_symbol('_');
-  // пометим проблему - нет имени
-  QueueSet(Q_noName, cmd.ea);
+    ea_t addr = x.addr >> 1;
+    bool H = x.addr & 1;
+    ea_t target = toEA(codeSeg(addr, x.n), addr);
+    if (out_name_expr(x, target, addr))
+        return;
+    OutValue(x, OOF_ADDR | OOF_NUMBER | OOFS_NOSIGN | OOFW_32);
+    if (H) out_symbol('_');
+    QueueSet(Q_noName, cmd.ea);
 }
 
-//----------------------------------------------------------------------
-// вывод одного операнда
 bool idaapi mn101_outop(op_t &x)
 {
-    switch ( x.type )
+    switch (x.type)
     {
-    // ссылка на память с использованием регистра (регистров)
-    // (disp,Ri)
     case o_phrase:
-    case o_displ: // открывающая скобка есть всегда
-                  // регистр пристуствует?
+    case o_displ:
         out_symbol('(');
+        // Do not add imm-offset when its zero
         if (x.addr != 0)
         {
             OutValue(x, OOF_ADDR);
@@ -41,41 +32,34 @@ bool idaapi mn101_outop(op_t &x)
         out_symbol(')');
         break;
 
-    // регистр
     case o_reg:
         out_register(ph.regNames[x.reg]);
         break;
 
-    // непосредственные данные
     case o_imm:
-      OutValue(x, /*OOFS_NOSIGN | */ OOF_SIGNED | OOFW_IMM);
-      break;
+        OutValue(x, OOF_SIGNED | OOFW_IMM);
+        break;
 
-    // ссылка на программу
     case o_near:
-      OutVarName(x);
-      break;
+        OutVarName(x);
+        break;
 
-    // прямая ссылка на память
     case o_mem:
-      out_symbol('(');
-      OutVarName(x);
-      out_symbol(')');
-      break;
+        out_symbol('(');
+        OutVarName(x);
+        out_symbol(')');
+        break;
 
-    // пустыка не выводится
     case o_void:
-      return 0;
+        return 0;
 
-    // неизвестный операнд
     default:
-      warning("out: %a: bad optype %d",cmd.ea,x.type);
-      break;
-  }
-  return 1;
+        warning("out: %a: bad optype %d", cmd.ea, x.type);
+        break;
+    }
+    return 1;
 }
 
-//----------------------------------------------------------------------
 void idaapi mn101_out(void)
 {
     char buf[MAXSTR];
@@ -103,93 +87,59 @@ void idaapi mn101_out(void)
         out_one_operand(2);
     }
 
-    // выведем непосредственные данные, если они есть
-    if ( isVoid(cmd.ea,uFlag,0) ) OutImmChar(cmd.Op1);
-    if ( isVoid(cmd.ea,uFlag,1) ) OutImmChar(cmd.Op2);
-    if ( isVoid(cmd.ea,uFlag,2) ) OutImmChar(cmd.Op3);
+    if (isVoid(cmd.ea, uFlag, 0)) OutImmChar(cmd.Op1);
+    if (isVoid(cmd.ea, uFlag, 1)) OutImmChar(cmd.Op2);
+    if (isVoid(cmd.ea, uFlag, 2)) OutImmChar(cmd.Op3);
 
-    // завершим строку
     term_output_buffer();
     gl_comm = 1;
     MakeLine(buf);
 }
 
 //--------------------------------------------------------------------------
-// заголовок текста листинго
-void idaapi mn102_header(void)
+// Listing header
+void idaapi mn101_header(void)
 {
-  gen_header(GH_PRINT_ALL_BUT_BYTESEX, device[0] ? device : NULL, deviceparams);
+    gen_header(GH_PRINT_ALL_BUT_BYTESEX, device[0] ? device : NULL, deviceparams);
 }
 
 //--------------------------------------------------------------------------
-// начало сегмента
-void idaapi mn102_segstart(ea_t ea)
+// Segment start
+void idaapi mn101_segstart(ea_t ea)
 {
-  segment_t *Sarea = getseg(ea);
-  const char *SegType = Sarea->type == SEG_CODE ? "CSEG"
-                      : Sarea->type == SEG_DATA ? "DSEG"
-                      :                           "RSEG";
-  // Выведем строку вида RSEG <NAME>
-  char sn[MAXNAMELEN];
-  get_segm_name(Sarea, sn, sizeof(sn));
-  printf_line(-1, "%s %s ", SegType, sn);
-  // если смещение не ноль - выведем и его (ORG XXXX)
-  if ( inf.s_org )
-  {
-    ea_t org = ea - get_segm_base(Sarea);
-    if ( org != 0 )
-    {
-      char bufn[MAX_NUMBUF];
-      btoa(bufn, sizeof(bufn), org);
-      printf_line(-1, "%s %s", ash.origin, bufn);
-    }
-  }
+    segment_t *Sarea = getseg(ea);
+    if (is_spec_segm(Sarea->type)) return;
+
+    char sname[MAXNAMELEN];
+    get_true_segm_name(Sarea, sname, sizeof(sname));
+
+    gen_cmt_line("section %s", sname);
 }
 
-//--------------------------------------------------------------------------
-// конец текста
-void idaapi mn102_footer(void)
-{
-  char buf[MAXSTR];
-  char *const end = buf + sizeof(buf);
-  if ( ash.end != NULL )
-  {
-    MakeNull();
-    char *ptr = tag_addstr(buf, end, COLOR_ASMDIR, ash.end);
-    qstring name;
-    if ( get_colored_name(&name, inf.beginEA) > 0 )
-    {
-      register size_t i = strlen(ash.end);
-      do
-        APPCHAR(ptr, end, ' ');
-      while ( ++i < 8 );
-      APPEND(ptr, end, name.begin());
-    }
-    MakeLine(buf,inf.indent);
-  }
-  else
-  {
-    gen_cmt_line("end of file");
-  }
-}
 
 //--------------------------------------------------------------------------
-void idaapi mn102_data(ea_t ea)
+// Listing footer
+void idaapi mn101_footer(void)
 {
-  refinfo_t ri;
-  // micro bug-fix
-  if ( get_refinfo(ea, 0, &ri) )
-  {
-    if ( ri.flags == REF_OFF16 )
+    char buf[MAXSTR];
+    char *const end = buf + sizeof(buf);
+    if (ash.end != NULL)
     {
-      set_refinfo(ea, 0, REF_OFF32, ri.target, ri.base, ri.tdelta);
-//      msg("Exec OFF16 Fix AT:%a Flags=%x, Target=%a, Base=%a, Delta=%a\n",ea,
-//          ri.flags,ri.target,ri.base,uval_t(ri.tdelta));
+        MakeNull();
+        char *ptr = tag_addstr(buf, end, COLOR_ASMDIR, ash.end);
+        qstring name;
+        if (get_colored_name(&name, inf.beginEA) > 0)
+        {
+            register size_t i = strlen(ash.end);
+            do
+                APPCHAR(ptr, end, ' ');
+            while (++i < 8);
+            APPEND(ptr, end, name.begin());
+        }
+        MakeLine(buf, inf.indent);
     }
-  }
-  gl_name = 1;
-  // попробуем  вывести, как equ
-  //  if ( out_equ(ea) ) return;
-  // не получилось - выводим данными
-  intel_data(ea);
+    else
+    {
+        gen_cmt_line("end of file");
+    }
 }
