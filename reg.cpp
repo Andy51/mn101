@@ -13,7 +13,7 @@ static const char *const mn101_registerNames[] =
     "DW0","DW1",
     "SP", "PSW", "HA",
 
-    "cs","ds"
+    "cs","ds", "H"
 };
 
 //----------------------------------------------------------------------
@@ -47,6 +47,14 @@ static int idaapi notify(processor_t::idp_notify msgid, ...)
 
     case processor_t::newfile:
         break;
+
+    case processor_t::newseg:
+    {
+        segment_t *s = va_arg(va, segment_t *);
+        // set initial value for pseudosegment register H
+        s->defsr[rVh - ph.regFirstSreg] = 0;
+    }
+    break;
 
     default:
         break;
@@ -167,7 +175,7 @@ processor_t LPH = {
     NULL,                       // Register descriptions
     NULL,                       // Pointer to CPU registers
 
-    rVcs,rVds,                  // Number of first/last segment register
+    rVcs,rVh,                   // Number of first/last segment register
     2,                          // size of a segment register
 
     rVcs,rVds,                  // Number of CS/DS register

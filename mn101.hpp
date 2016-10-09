@@ -33,6 +33,7 @@ enum mn101_registers {
 
     rVcs,
     rVds,
+    rVh,
 
     OP_REG_LAST,
 };

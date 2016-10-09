@@ -1,4 +1,5 @@
 #include "mn101.hpp"
+#include <srarea.hpp>
 
 static bool flow;
 
@@ -43,7 +44,7 @@ static void handle_operand(op_t &x, int isread)
         }
 
         // Mark the jump address if it has halfbyte offset
-        helper.charset(ea, x.addr & 1, NODETAG_HALFBYTE);
+        split_srarea(ea, rVh, x.addr & 1, SR_auto);
         break;
 
     default:
@@ -68,6 +69,10 @@ int idaapi mn101_emu(void)
     if (Feature & CF_CHG3) handle_operand(cmd.Op3, 0);
     if (Feature & CF_JUMP) QueueSet(Q_jumps, cmd.ea);
     if (flow) ua_add_cref(0, cmd.ea + cmd.size, fl_F);
+    // Mark the next command's start halfbyte
+    // Note it should be done even if flow==0 to prevent errors on following instructions autoanalysis
+    split_srarea(cmd.ea + cmd.size, rVh, cmd.segpref, SR_auto);
+
 
     return(1);
 }

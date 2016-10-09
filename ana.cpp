@@ -1,4 +1,5 @@
 #include "mn101.hpp"
+#include <srarea.hpp>
 
 typedef enum {
     OPG_NONE = 0,
@@ -81,7 +82,7 @@ static struct parseState_t
     {
         code = 0;
         sz = 0;
-        uchar H = helper.charval(cmd.ea, NODETAG_HALFBYTE);
+        uchar H = get_segreg(cmd.ea, rVh);
         ptr = pc = (cmd.ea << 1) + H;
     }
 
@@ -418,11 +419,8 @@ int idaapi mn101_ana(void)
 
     // Update the command size
     cmd.size = (parseState.sz + (parseState.pc & 1)) / 2;
-    // Mark the last byte if it was partly consumed
-    if (parseState.ptr & 1)
-    {
-        helper.charset(parseState.ptr >> 1, 1, NODETAG_HALFBYTE);
-    }
+    // cmd.segp would hold 1 if the last byte was only partially consumed
+    cmd.segpref = parseState.ptr & 1;
 
     return(cmd.size);
 }
