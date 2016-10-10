@@ -76,7 +76,7 @@ static struct parseState_t
     ea_t ptr;
     uint32 code;
     uchar sz;
-    uchar masked;
+    uchar insbyte;
 
     void reset()
     {
@@ -120,7 +120,8 @@ static struct parseState_t
     {
         if ((code & pi->mask) == pi->code)
         {
-            masked = code & (~pi->mask);
+            // Save the first two nibbles for operands parsing
+            insbyte = code;
             return true;
         }
         return false;
@@ -148,45 +149,45 @@ static bool parseOperand(op_t &op, int type)
     case OPG_NONE:
         break;
     case OPG_D_SRC:
-        v = (parseState.masked & 0xC) >> 2;
+        v = (parseState.insbyte & 0xC) >> 2;
         op.type = o_reg;
         op.reg = OP_REG_D + v;
         break;
     case OPG_D_DST:
-        v = parseState.masked & 0x3;
+        v = parseState.insbyte & 0x3;
         op.type = o_reg;
         op.reg = OP_REG_D + v;
         break;
     case OPG_DW_SRC:
-        v = (parseState.masked & 0x2) >> 1;
+        v = (parseState.insbyte & 0x2) >> 1;
         op.type = o_reg;
         op.reg = OP_REG_DW + v;
         break;
     case OPG_DW_DST:
-        v = parseState.masked & 0x1;
+        v = parseState.insbyte & 0x1;
         op.type = o_reg;
         op.reg = OP_REG_DW + v;
         break;
     case OPG_D0_DW_DST:
     case OPG_D1_DW_DST:
-        v = parseState.masked & 0x1;
+        v = parseState.insbyte & 0x1;
         op.type = o_reg;
         op.reg = OP_REG_D + v * 2;
         if (type == OPG_D1_DW_DST)
             op.reg++;
         break;
     case OPG_A_8:
-        v = (parseState.masked & 0x4) >> 2;
+        v = (parseState.insbyte & 0x4) >> 2;
         op.type = o_reg;
         op.reg = OP_REG_A + v;
         break;
     case OPG_A_SRC:
-        v = (parseState.masked & 0x2) >> 1;
+        v = (parseState.insbyte & 0x2) >> 1;
         op.type = o_reg;
         op.reg = OP_REG_A + v;
         break;
     case OPG_A_DST:
-        v = parseState.masked & 0x1;
+        v = parseState.insbyte & 0x1;
         op.type = o_reg;
         op.reg = OP_REG_A + v;
         break;
@@ -240,7 +241,7 @@ static bool parseOperand(op_t &op, int type)
     case OPG_BRANCH4:
         imm = parseState.fetchNibble();
         imm = SIGN_EXTEND(4, imm);
-        imm = (imm << 1) | (parseState.masked & 1); // Extract H
+        imm = (imm << 1) | (parseState.insbyte & 1); // Extract H
         setCodeAddrValue(op, parseState.pc + imm + parseState.sz);
         op.type = o_near;
         break;
@@ -258,8 +259,8 @@ static bool parseOperand(op_t &op, int type)
     case OPG_BRANCH18:
     case OPG_CALL18:
         imm = parseState.fetchByte() | (parseState.fetchByte() << 8);
-        imm |= (parseState.masked & 0x6) << 15; //aa
-        imm = (imm << 1) | (parseState.masked & 0x1); //H
+        imm |= (parseState.insbyte & 0x6) << 15; //aa
+        imm = (imm << 1) | (parseState.insbyte & 0x1); //H
         setCodeAddrValue(op, imm);
         op.type = o_near;
         break;
@@ -276,14 +277,14 @@ static bool parseOperand(op_t &op, int type)
     case OPG_CALL12:
         imm = parseState.fetchByte() | (parseState.fetchNibble() << 8);
         imm = SIGN_EXTEND(12, imm);
-        imm = (imm << 1) | (parseState.masked & 0x1); //H
+        imm = (imm << 1) | (parseState.insbyte & 0x1); //H
         setCodeAddrValue(op, parseState.pc + imm + parseState.sz);
         op.type = o_near;
         break;
     case OPG_CALL16:
         imm = parseState.fetchByte() | (parseState.fetchByte() << 8);
         imm = SIGN_EXTEND(16, imm);
-        imm = (imm << 1) | (parseState.masked & 0x1); //H
+        imm = (imm << 1) | (parseState.insbyte & 0x1); //H
         setCodeAddrValue(op, parseState.pc + imm + parseState.sz);
         op.type = o_near;
         break;
@@ -308,7 +309,7 @@ static bool parseOperand(op_t &op, int type)
 
     case OPG_BITPOS:
     case OPG_REP3:
-        imm = parseState.masked & 0x7;
+        imm = parseState.insbyte & 0x7;
         if (type == OPG_BITPOS)
             op.type = o_bitpos;
         else
