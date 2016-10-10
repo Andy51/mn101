@@ -41,7 +41,7 @@ bool idaapi mn101_outop(op_t &x)
         break;
 
     case o_imm:
-        OutValue(x, OOF_SIGNED | OOFW_IMM);
+        OutValue(x, OOF_SIGNED | OOFW_32);
         break;
 
     case o_near:

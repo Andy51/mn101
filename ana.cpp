@@ -194,22 +194,26 @@ static bool parseOperand(op_t &op, int type)
     case OPG_IMM4:
     case OPG_IMM4_S:
         imm = parseState.fetchNibble();
-        if(type == OPG_IMM4_S)
+        if (type == OPG_IMM4_S)
+        {
             imm = SIGN_EXTEND(4, imm);
+            op.flags |= OF_NUMBER;
+        }
         op.addr = op.value = imm;
         op.type = o_imm;
         op.dtyp = dt_byte;
-        op.flags |= OF_NUMBER;
         break;
     case OPG_IMM8:
     case OPG_IMM8_S:
         imm = parseState.fetchByte();
         if (type == OPG_IMM8_S)
+        {
             imm = SIGN_EXTEND(8, imm);
+            op.flags |= OF_NUMBER;
+        }
         op.addr = op.value = imm;
         op.type = o_imm;
         op.dtyp = dt_byte;
-        op.flags |= OF_NUMBER;
         break;
     case OPG_IMM12:
         imm = parseState.fetchByte();
@@ -217,7 +221,6 @@ static bool parseOperand(op_t &op, int type)
         op.addr = op.value = imm;
         op.type = o_imm;
         op.dtyp = dt_word;
-        op.flags |= OF_NUMBER;
         break;
     case OPG_IMM16:
         imm = parseState.fetchByte();
@@ -225,7 +228,7 @@ static bool parseOperand(op_t &op, int type)
         op.addr = op.value = imm;
         op.type = o_imm;
         op.dtyp = dt_word;
-        op.flags |= OF_NUMBER;
+        //op.flags |= OF_NUMBER;
         break;
     case OPG_IO8:
         imm = parseState.fetchByte();
