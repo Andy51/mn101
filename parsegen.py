@@ -18,7 +18,7 @@ def main():
     parser.add_argument('infile',  type=argparse.FileType('r'))
 
     args = parser.parse_args()
-    mnems = set()
+    mnems = dict()
 
     parseinfo = ([],[],[])
     for line in args.infile.readlines():
@@ -86,8 +86,6 @@ def main():
                 cf_jump = True
             if opcode.startswith('CALL'):
                 cf_call = True
-            if opcode.startswith('BITPOS'):
-                used = False
 
             if posflag:
                 opindex = posflag - 1
@@ -130,9 +128,18 @@ def main():
 
         code &= 0xFF
         mask &= 0xFF
+        cflags = tuple(cflags)
+
+        # Add a suffix for different forms of the same mnemonic
+        original_mnem = mnem
+        renamesuffix = 0
+        while (mnem in mnems) and (mnems[mnem] != cflags):
+            renamesuffix += 1
+            mnem = '%s_%d' % (original_mnem, renamesuffix)
+
         values = (hex(code), hex(mask), mnem2enum(mnem)) + tuple(ops)
         parseinfo[extension].append(values)
-        mnems.add((mnem, tuple(cflags)))
+        mnems[mnem] = cflags
 
     # Output parsetables
     for extension, pinfo in enumerate(parseinfo):
@@ -140,7 +147,7 @@ def main():
             for values in pinfo:
                 fd.write('{ %s },\n' % ', '.join(values))
 
-    mnems = list(mnems)
+    mnems = mnems.items()
     mnems.sort()
 
     # Output instruc_t table
