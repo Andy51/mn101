@@ -46,7 +46,14 @@ static int idaapi notify(processor_t::idp_notify msgid, ...)
         break;
 
     case processor_t::newfile:
-        break;
+    {
+        char cfgfile[QMAXFILE];
+
+        get_cfg_filename(cfgfile, sizeof(cfgfile));
+        if (choose_ioport_device(cfgfile, device, sizeof(device), parse_area_line0))
+            set_device_name(device, IORESP_ALL);
+    }
+    break;
 
     case processor_t::newseg:
     {
