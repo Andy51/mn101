@@ -5,8 +5,12 @@ extern char device[];
 
 static void OutVarName(op_t &x)
 {
-    ea_t addr = x.addr >> 1;
-    bool H = x.addr & 1;
+    ea_t addr = x.addr;
+    bool H = 0;
+    // For branch ops x.value holds halfbyte address and x.addr holds byte address
+    if (x.addr != x.value)
+        H = x.value & 1;
+
     ea_t target = toEA(codeSeg(addr, x.n), addr);
     if (out_name_expr(x, target, addr))
         return;

@@ -5,7 +5,7 @@ static bool flow;
 
 static void handle_operand(op_t &x, int isread)
 {
-    ea_t ea = toEA(cmd.cs, x.addr / 2);
+    ea_t ea = toEA(cmd.cs, x.addr);
 
     switch (x.type)
     {
@@ -44,7 +44,7 @@ static void handle_operand(op_t &x, int isread)
         }
 
         // Mark the jump address if it has halfbyte offset
-        split_srarea(ea, rVh, x.addr & 1, SR_auto);
+        split_srarea(ea, rVh, x.value & 1, SR_auto);
         break;
 
     default:
