@@ -382,6 +382,7 @@ static bool parseInstruction(const parseinfo_t *pTable, size_t tblSize)
             {
                 if (cmd.Operands[srcidx].type == o_displ)
                 {
+                    QASSERT(258, dstidx > 0);
                     dstidx--;
                 }
                 if (srcidx != dstidx)
