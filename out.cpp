@@ -40,6 +40,7 @@ bool idaapi mn101_outop(op_t &x)
         out_register(ph.regNames[x.reg]);
         break;
 
+    case o_bitpos:
     case o_imm:
         OutValue(x, OOF_SIGNED | OOFW_32);
         break;
@@ -78,16 +79,22 @@ void idaapi mn101_out(void)
     //Second operand
     if (cmd.Op2.type != o_void)
     {
-        out_symbol(',');
-        OutChar(' ');
+        if (cmd.Op2.type != o_bitpos)
+        {
+            out_symbol(',');
+            OutChar(' ');
+        }
         out_one_operand(1);
     }
 
     // Third operand
     if (cmd.Op3.type != o_void)
     {
-        out_symbol(',');
-        OutChar(' ');
+        if (cmd.Op3.type != o_bitpos)
+        {
+            out_symbol(',');
+            OutChar(' ');
+        }
         out_one_operand(2);
     }
 

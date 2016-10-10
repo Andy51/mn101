@@ -8,7 +8,9 @@
 #include "ins.hpp"
 
 extern netnode helper;
-#define NODETAG_HALFBYTE 'h'
+
+// Define a special op type for bitpos
+#define o_bitpos o_idpspec0
 
 enum mn101_registers {
     OP_REG_NONE = 0,

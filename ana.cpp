@@ -309,7 +309,10 @@ static bool parseOperand(op_t &op, int type)
     case OPG_BITPOS:
     case OPG_REP3:
         imm = parseState.masked & 0x7;
-        op.type = o_imm;
+        if (type == OPG_BITPOS)
+            op.type = o_bitpos;
+        else
+            op.type = o_imm;
         op.value = imm;
         break;
 

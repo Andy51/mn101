@@ -10,15 +10,13 @@ static void handle_operand(op_t &x, int isread)
     switch (x.type)
     {
     case o_void:
-        break;
-
     case o_reg:
+    case o_bitpos:
+    case o_phrase:
         break;
 
     case o_displ:
         doImmd(cmd.ea);
-        break;
-    case o_phrase:
         break;
 
     case o_imm:
