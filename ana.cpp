@@ -429,10 +429,22 @@ int idaapi mn101_ana(void)
     if (!decoded)
         return 0;
 
+
+    // Compiler generally aligns the size of return instructions by a byte
+    //TODO: maybe add a user option for this
+    if (cmd.itype == INS_RTS || cmd.itype == INS_RTI)
+    {
+        if ((parseState.sz + parseState.pc) & 1) ++parseState.sz;
+        cmd.segpref = 0;
+    }
+    else
+    {
+        // cmd.segpref would hold 1 if the last byte was only partially consumed
+        cmd.segpref = parseState.ptr & 1;
+    }
+
     // Update the command size
     cmd.size = (parseState.sz + (parseState.pc & 1)) / 2;
-    // cmd.segp would hold 1 if the last byte was only partially consumed
-    cmd.segpref = parseState.ptr & 1;
 
     return(cmd.size);
 }
