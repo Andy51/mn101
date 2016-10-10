@@ -3,8 +3,8 @@ ADDITIONAL_GOALS=config
 
 include ../module.mak
 
-config: $(C)mn102l00.cfg
-$(C)mn102l00.cfg: mn102l00.cfg
+config: $(C)mn101e.cfg
+$(C)mn101e.cfg: mn101e.cfg
 	$(CP) $? $@
 
 #http://stackoverflow.com/questions/2973445/gnu-makefile-rule-generating-a-few-targets-from-a-single-source-file
