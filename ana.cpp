@@ -266,13 +266,17 @@ static bool parseOperand(op_t &op, int type)
         break;
     case OPG_BRANCH20:
     case OPG_CALL20:
-        v = parseState.fetchByte();
+    {
+        uchar u = parseState.fetchNibble();
+        v = parseState.fetchNibble();
         imm = parseState.fetchByte() | (parseState.fetchByte() << 8);
-        imm |= (v & 0x1E) << 15; //Bbbb
+        imm |= (v & 0xE) << 15; //bbb
+        imm |= (u & 0x1) << 19; //B
         imm = (imm << 1) | (v & 0x1); //H
         setCodeAddrValue(op, imm);
         op.type = o_near;
-        break;
+    }
+    break;
 
     case OPG_CALL12:
         imm = parseState.fetchByte() | (parseState.fetchNibble() << 8);
