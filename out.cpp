@@ -45,6 +45,11 @@ bool idaapi mn101_outop(op_t &x)
         OutValue(x, OOF_SIGNED | OOFW_32);
         break;
 
+    case o_far:
+        if (x.addr == 0)
+        {
+            x.addr = get_long(toEA(cmd.cs, x.value));
+        }
     case o_near:
         OutVarName(x);
         break;

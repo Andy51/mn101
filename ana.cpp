@@ -290,8 +290,9 @@ static bool parseOperand(op_t &op, int type)
         break;
     case OPG_CALLTBL4:
         imm = parseState.fetchNibble();
-        setCodeAddrValue(op, SRVT + (imm << 2));
-        op.type = o_mem;
+        imm = SRVT + (imm << 2);
+        op.value = imm;
+        op.type = o_far;
         break;
 
     case OPG_REG_SP:
