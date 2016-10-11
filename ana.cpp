@@ -293,10 +293,16 @@ static bool parseOperand(op_t &op, int type)
         op.type = o_near;
         break;
     case OPG_CALLTBL4:
+    {
         imm = parseState.fetchNibble();
         imm = SRVT + (imm << 2);
-        op.value = imm;
+
+        ea_t tblentry = toEA(cmd.cs, imm);
+        ea_t ea = get_long(tblentry);
+        setCodeAddrValue(op, ((ea & 0xFFFFF) << 1) | (ea >> 23));
+        op.specval = tblentry;
         op.type = o_far;
+    }
         break;
 
     case OPG_REG_SP:

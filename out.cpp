@@ -46,10 +46,6 @@ bool idaapi mn101_outop(op_t &x)
         break;
 
     case o_far:
-        if (x.addr == 0)
-        {
-            x.addr = get_long(toEA(cmd.cs, x.value));
-        }
     case o_near:
         OutVarName(x);
         break;

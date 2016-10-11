@@ -30,6 +30,10 @@ static void handle_operand(op_t &x, int isread)
         ua_add_dref(x.offb, ea, isread ? dr_R : dr_W);
         break;
 
+    case o_far: // Used for JSRV
+        ua_add_dref(x.offb, x.specval, isread ? dr_R : dr_W);
+        ua_dodata2(x.offb, x.specval, dt_dword);
+        //fallthrough
     case o_near:
         if (InstrIsSet(cmd.itype, CF_CALL))
         {
@@ -44,17 +48,6 @@ static void handle_operand(op_t &x, int isread)
         // Mark the jump address if it has halfbyte offset
         split_srarea(ea, rVh, x.value & 1, SR_auto);
         break;
-
-    case o_far: // Used for JSRV
-    {
-        ea_t tblentry = toEA(cmd.cs, x.value);
-        x.addr = get_long(tblentry);
-        ua_add_dref(x.offb, tblentry, isread ? dr_R : dr_W);
-        ua_dodata2(x.offb, tblentry, dt_dword);
-        ua_add_cref(x.offb, x.addr, fl_CN);
-        split_srarea(x.addr, rVh, 0, SR_auto);
-    }
-    break;
 
     default:
         warning("%a %s,%d: bad optype %d",
