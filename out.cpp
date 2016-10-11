@@ -12,11 +12,12 @@ static void OutVarName(op_t &x)
         H = x.value & 1;
 
     ea_t target = toEA(codeSeg(addr, x.n), addr);
-    if (out_name_expr(x, target, addr))
-        return;
-    OutValue(x, OOF_ADDR | OOF_NUMBER | OOFS_NOSIGN | OOFW_32);
+    if (!out_name_expr(x, target, addr))
+    {
+        OutValue(x, OOF_ADDR | OOF_NUMBER | OOFS_NOSIGN | OOFW_32);
+        QueueSet(Q_noName, cmd.ea);
+    }
     if (H) out_symbol('_');
-    QueueSet(Q_noName, cmd.ea);
 }
 
 bool idaapi mn101_outop(op_t &x)
