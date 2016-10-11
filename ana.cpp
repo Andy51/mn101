@@ -7,37 +7,41 @@ typedef enum {
     OPG_D_DST,
     OPG_DW_SRC,
     OPG_DW_DST,
-    OPG_D0_DW_DST, //#
-    OPG_D1_DW_DST, //#
-    OPG_A_8, //#
-    OPG_A_SRC, //#
-    OPG_A_DST, //#
+    OPG_D0_DW_DST,
+    OPG_D1_DW_DST,
+    OPG_A_8,
+    OPG_A_SRC, 
+    OPG_A_DST,
     OPG_IMM4,
     OPG_IMM4_S,
-    OPG_IMM8, //#
-    OPG_IMM8_S, //#
-    OPG_IMM12, //#
-    OPG_IMM16, //#
-    OPG_IO8, //#
+    OPG_IMM8,
+    OPG_IMM8_S,
+    OPG_IMM12,
+    OPG_IMM16,
+    OPG_IO8,
     OPG_BRANCH4,
     OPG_BRANCH7,
     OPG_BRANCH11,
-    OPG_BRANCH18, //#
-    OPG_BRANCH20, //#
-    OPG_CALL12, //#
-    OPG_CALL16, //#
-    OPG_CALL18, //#
-    OPG_CALL20, //#
-    OPG_CALLTBL4, //#
+    OPG_BRANCH18,
+    OPG_BRANCH20,
+    OPG_CALL12,
+    OPG_CALL16,
+    OPG_CALL18,
+    OPG_CALL20,
+    OPG_CALLTBL4,
     OPG_REG_SP,
-    OPG_REG_PSW, //#
-    OPG_REG_HA, //#
-    OPG_BITPOS, //#
-    OPG_REP3, //#
+    OPG_REG_PSW,
+    OPG_REG_HA,
+    OPG_BITPOS,
+    OPG_REP3,
 
-    OPGF_RELATIVE = 0x100,//#
-    OPGF_LOAD = 0X200,//#
-    OPGF_SHOWAT_0 = 0x1000, //#
+    OPGF_RELATIVE = 0x100,
+
+    OPGF_MEM8  = 0x200,
+    OPGF_MEM16 = 0x400,
+    OPGF_MEM_MASK = 0x600,
+
+    OPGF_SHOWAT_0 = 0x1000,
     OPGF_SHOWAT_1 = 0x2000,
     OPGF_SHOWAT_2 = 0x3000,
     OPGF_SHOWAT_MASK = 0x7000
@@ -373,12 +377,16 @@ static bool parseInstruction(const parseinfo_t *pTable, size_t tblSize)
                 else
                     opidx = j;
                 parseOperand(cmd.Operands[opidx], ins->op[j] & 0xFF);
-                if ((ins->op[j] & OPGF_LOAD) != 0)
+                if ((ins->op[j] & OPGF_MEM_MASK) != 0)
                 {
                     if (cmd.Operands[opidx].type == o_reg)
                         cmd.Operands[opidx].type = o_phrase;
                     else if (cmd.Operands[opidx].type == o_imm)
                         cmd.Operands[opidx].type = o_mem;
+                    if (ins->op[j] & OPGF_MEM8)
+                        cmd.Operands[opidx].dtyp = dt_byte;
+                    if (ins->op[j] & OPGF_MEM16)
+                        cmd.Operands[opidx].dtyp = dt_word;
                 }
                 if ((ins->op[j] & OPGF_RELATIVE) != 0)
                 {

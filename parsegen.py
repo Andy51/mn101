@@ -53,7 +53,7 @@ def main():
         for opcode in values:
             displ = False
             changed = False
-            load = False
+            mem = False
             used = False
             cf_call = False
             cf_jump = False
@@ -73,7 +73,7 @@ def main():
                 elif c == '+':
                     displ = True
                 elif c == '*':
-                    load = True
+                    mem = True
             #Extract position, if any
             if len(opcode) > 2 and opcode[-2] == '@':
                 posflag = int(opcode[-1])
@@ -97,8 +97,11 @@ def main():
                 opval.append('OPG_' + opcode)
             if displ:
                 opval.append('OPGF_RELATIVE')
-            if load:
-                opval.append('OPGF_LOAD')
+            if mem:
+                if mnem.endswith('W'):
+                    opval.append('OPGF_MEM16')
+                else:
+                    opval.append('OPGF_MEM8')
             if posflag:
                 opval.append('OPGF_SHOWAT_%d' % opcounter)
             if cf_call:
