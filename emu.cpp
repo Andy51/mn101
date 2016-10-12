@@ -45,8 +45,13 @@ static void handle_operand(op_t &x, int isread)
             ua_add_cref(x.offb, ea, fl_JN);
         }
 
-        // Mark the jump address if it has halfbyte offset
-        split_srarea(ea, rVh, x.value & 1, SR_auto);
+        // Mark the jump target byte address if it has halfbyte offset
+        // But only if it is not already inside a processed function,
+        // otherwise we could destroy it by forcing segreg change
+        if (get_func(ea) == NULL)
+        {
+            split_srarea(ea, rVh, x.value & 1, SR_auto);
+        }
         break;
 
     default:
@@ -71,10 +76,15 @@ int idaapi mn101_emu(void)
     if (Feature & CF_CHG3) handle_operand(cmd.Op3, 0);
     if (Feature & CF_JUMP) QueueSet(Q_jumps, cmd.ea);
     if (flow) ua_add_cref(0, cmd.ea + cmd.size, fl_F);
+
     // Mark the next command's start halfbyte
     // Note it should be done even if flow==0 to prevent errors on following instructions autoanalysis
-    split_srarea(cmd.ea + cmd.size, rVh, cmd.segpref, SR_auto);
-
+    // But be careful not to mess other functions
+    ea_t next = cmd.ea + cmd.size;
+    if (get_func(next) == NULL)
+    {
+        split_srarea(next, rVh, cmd.segpref, SR_auto);
+    }
 
     return(1);
 }
