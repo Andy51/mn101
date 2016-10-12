@@ -1,6 +1,7 @@
 .vs/
 obj/
 Debug/
+Release/
 *sdf
 *.filters
 *.user
