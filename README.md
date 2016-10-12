@@ -11,4 +11,4 @@ The main problem with MN101 is that instructions have variable length with 4-bit
 However, since the minimum size one instruction can take is 2 nibbles (1 byte) we can display an instruction as if it starts aligned to byte, at the same time maintaining the H flag for every code location indicating whether the instruction start have a half-byte offset or not. You can (and often have to) change it manually with Alt+G shortcut (it is represented as a pseudo segment register).
 
 ## Install
-Place the mn101.w32 into <IDAINSTALL>/procs/ and mn101e.cfg into <IDAINSTALL>/cfg/
+Place the mn101.w32 into \<IDAINSTALL\>/procs/ and mn101e.cfg into \<IDAINSTALL\>/cfg/
