@@ -110,7 +110,10 @@ static struct parseState_t
     {
         uchar byte;
         if (ptr & 1)
-            byte = (get_byte(ptr >> 1) >> 4) | (get_byte((ptr >> 1)+1) << 4);
+        {
+            byte = get_byte(ptr >> 1) >> 4;
+            byte |= get_byte((ptr >> 1) + 1) << 4;
+        }
         else
             byte = get_byte(ptr >> 1);
 
@@ -255,14 +258,16 @@ static bool parseOperand(op_t &op, int type)
         op.type = o_near;
         break;
     case OPG_BRANCH11:
-        imm = parseState.fetchByte() | (parseState.fetchNibble() << 8); //Signed imm#12
+        imm = parseState.fetchByte();
+        imm |= parseState.fetchNibble() << 8; //Signed imm#12
         imm = SIGN_EXTEND(12, imm);
         setCodeAddrValue(op, parseState.pc + imm + parseState.sz);
         op.type = o_near;
         break;
     case OPG_BRANCH18:
     case OPG_CALL18:
-        imm = parseState.fetchByte() | (parseState.fetchByte() << 8);
+        imm = parseState.fetchByte();
+        imm |= parseState.fetchByte() << 8;
         imm |= (parseState.insbyte & 0x6) << 15; //aa
         imm = (imm << 1) | (parseState.insbyte & 0x1); //H
         setCodeAddrValue(op, imm);
@@ -273,7 +278,8 @@ static bool parseOperand(op_t &op, int type)
     {
         uchar u = parseState.fetchNibble();
         v = parseState.fetchNibble();
-        imm = parseState.fetchByte() | (parseState.fetchByte() << 8);
+        imm = parseState.fetchByte();
+        imm |= parseState.fetchByte() << 8;
         imm |= (v & 0xE) << 15; //bbb
         imm |= (u & 0x1) << 19; //B
         imm = (imm << 1) | (v & 0x1); //H
@@ -283,14 +289,16 @@ static bool parseOperand(op_t &op, int type)
     break;
 
     case OPG_CALL12:
-        imm = parseState.fetchByte() | (parseState.fetchNibble() << 8);
+        imm = parseState.fetchByte();
+        imm |= parseState.fetchNibble() << 8;
         imm = SIGN_EXTEND(12, imm);
         imm = (imm << 1) | (parseState.insbyte & 0x1); //H
         setCodeAddrValue(op, parseState.pc + imm + parseState.sz);
         op.type = o_near;
         break;
     case OPG_CALL16:
-        imm = parseState.fetchByte() | (parseState.fetchByte() << 8);
+        imm = parseState.fetchByte();
+        imm |= parseState.fetchByte() << 8;
         imm = SIGN_EXTEND(16, imm);
         imm = (imm << 1) | (parseState.insbyte & 0x1); //H
         setCodeAddrValue(op, parseState.pc + imm + parseState.sz);
