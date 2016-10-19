@@ -17,10 +17,14 @@ static void handle_operand(op_t &x, int isread)
 
     case o_displ:
         doImmd(cmd.ea);
+        if (op_adds_xrefs(uFlag, x.n))
+            ua_add_off_drefs2(x, dr_O, OOF_ADDR);
         break;
 
     case o_imm:
         doImmd(cmd.ea);
+        if (op_adds_xrefs(uFlag, x.n))
+            ua_add_off_drefs(x, dr_O);
         break;
 
     case o_mem:
