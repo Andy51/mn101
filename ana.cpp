@@ -226,7 +226,7 @@ static bool parseOperand(op_t &op, int type)
         if (type == OPG_IMM8_S)
         {
             imm = SIGN_EXTEND(8, imm);
-            op.flags |= OF_NUMBER;
+            //op.flags |= OF_NUMBER;
         }
         op.addr = op.value = imm;
         op.type = o_imm;
