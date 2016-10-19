@@ -9,6 +9,7 @@ typedef enum {
     OPG_DW_DST,
     OPG_D0_DW_DST,
     OPG_D1_DW_DST,
+    OPG_DIVU_DN,
     OPG_A_8,
     OPG_A_SRC, 
     OPG_A_DST,
@@ -182,6 +183,14 @@ static bool parseOperand(op_t &op, int type)
         op.reg = OP_REG_D + v * 2;
         if (type == OPG_D1_DW_DST)
             op.reg++;
+        break;
+    case OPG_DIVU_DN:
+        v = parseState.insbyte & 0x1;
+        op.type = o_reg;
+        if (v == 0)
+            op.reg = OP_REG_D2;
+        else
+            op.reg = OP_REG_D0;
         break;
     case OPG_A_8:
         v = (parseState.insbyte & 0x4) >> 2;
