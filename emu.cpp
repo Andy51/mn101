@@ -23,6 +23,13 @@ static void handle_operand(op_t &x, int isread)
 
     case o_imm:
         doImmd(cmd.ea);
+
+        // Instructions of type 'MOVW imm,Am' with imm != 0 point that imm is most likely an address
+        if (!isDefArg(uFlag, x.n) && cmd.itype == INS_MOVW && x.value != 0
+            && cmd.Op2.type == o_reg && cmd.Op2.reg >= OP_REG_A0 && cmd.Op2.reg <= OP_REG_A1)
+        {
+            op_offset(cmd.ea, x.n, REF_OFF16);
+        }
         if (op_adds_xrefs(uFlag, x.n))
             ua_add_off_drefs(x, dr_O);
         break;
