@@ -366,7 +366,7 @@ static void mergeOps(op_t &src, op_t &dst)
     dst.addr += src.addr;
     dst.value += src.value;
     dst.flags |= src.flags;
-    dst.dtyp = src.dtyp;
+    //dst.dtyp = src.dtyp;
 
     src.type = 0;
     src.reg = 0;
