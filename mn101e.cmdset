@@ -1,9 +1,9 @@
 # > = changed
-# + = relative load
+# + = relative memory
 # ! = stop
 # % = branch
 # ^ = call
-# * = load
+# * = memory
 # @<n> - op fetch order
 
 # Special cases listed first: MOV Dn,Dm becomes MOV Imm8,Dm when Dm==Dn
@@ -41,8 +41,8 @@ MOV, IMM8@2,>*IMM12@1, 0001 0101 #<abs 12.. ...> <#8. ...>
 MOV, IMM8@2,>*IMM16@1, 0011 1101 1001 #<abs 16.. .... ...> <#8. ...>
 MOV, D_DST,>*REG_HA, 1101 00Dn
 
-MOVW, A_SRC, >DW_DST, 1110 00Ad
-MOVW, A_SRC, >A_DST, 0010 1110 10Aa
+MOVW, *A_SRC, >DW_DST, 1110 00Ad
+MOVW, *A_SRC, >A_DST, 0010 1110 10Aa
 MOVW, IMM4, +REG_SP, >DW_DST, 1110 011d #<d4>
 MOVW, IMM4, +REG_SP, >A_DST, 1110 010a #<d4>
 MOVW, IMM8, +REG_SP, >DW_DST, 0010 1110 011d #<d8. ...>
